@@ -1,0 +1,76 @@
+const path = require('path')
+const cache = require('@actions/cache')
+const core = require('@actions/core')
+const glob = require('@actions/glob')
+const config = require('./config')
+const { getFolderSize } = require('./util')
+
+async function run () {
+  await saveCaches()
+}
+
+async function saveCaches () {
+  await saveCache(config.bazeliskCache)
+  await saveCache(config.diskCache)
+  await saveCache(config.repositoryCache)
+  await saveExternalCaches(config.externalCache)
+}
+
+async function saveExternalCaches (cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  const globber = await glob.create(
+    `${config.paths.bazelExternal}/*`,
+    { implicitDescendants: false }
+  )
+  const externalPaths = await globber.glob()
+
+  for (const externalPath of externalPaths) {
+    const size = await getFolderSize(externalPath)
+    const sizeMB = (size / 1024 / 1024).toFixed(2)
+    core.debug(`${externalPath} size is ${sizeMB}MB`)
+
+    if (sizeMB >= cacheConfig.minSize) {
+      const name = path.basename(externalPath)
+      await saveCache({
+        enabled: true,
+        files: cacheConfig[name]?.files || cacheConfig.default.files,
+        name: cacheConfig.name(name),
+        paths: cacheConfig.paths(name)
+      })
+    }
+  }
+}
+
+async function saveCache (cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  const cacheHit = core.getState(`${cacheConfig.name}-cache-hit`)
+  core.debug(`${cacheConfig.name}-cache-hit is ${cacheHit}`)
+  if (cacheHit === 'true') {
+    return
+  }
+
+  try {
+    core.startGroup(`Save cache for ${cacheConfig.name}`)
+    const paths = cacheConfig.paths
+    const hash = await glob.hashFiles(
+      cacheConfig.files.join('\n'),
+      { followSymbolicLinks: false }
+    )
+    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+    console.log(`Attempting to save ${paths} cache to ${key}`)
+    await cache.saveCache(paths, key)
+    console.log('Successfully saved cache')
+  } catch (error) {
+    core.warning(error.stack)
+  } finally {
+    core.endGroup()
+  }
+}
+
+run()

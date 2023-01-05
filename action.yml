@@ -1,0 +1,44 @@
+name: Setup Bazel
+
+inputs:
+  bazelisk-cache:
+    description: Caches Bazelisk downloads based on .bazelversion
+    required: false
+    default: false
+  bazelrc:
+    description: Extra contents to write to user .bazelrc
+    required: false
+    default: ""
+  cache-version:
+    description: Version of all caches
+    required: false
+    default: 1
+  disk-cache:
+    description: Cache actions outputs based on BUILD
+    required: false
+    default: false
+  external-cache:
+    description: Cache external 10MB+ repositories based on WORKSPACE
+    required: false
+    default: ""
+  google-credentials:
+    description: Google Cloud account key for remote cache
+    required: false
+    default: ""
+  repository-cache:
+    description: Cache repositories based on WORKSPACE
+    required: false
+    default: false
+  token:
+    description: GitHub token to use for external cache
+    required: false
+    default: ""
+  use-gnu-tar-on-windows:
+    description: Use GNU tar on Windows
+    required: false
+    default: true
+
+runs:
+  using: node16
+  main: dist/main/index.js
+  post: dist/post/index.js

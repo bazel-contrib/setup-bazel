@@ -36,11 +36,13 @@ const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
 const diskCacheConfig = core.getInput('disk-cache')
-const diskCacheEnabled = diskCacheConfig.length > 0
+const diskCacheEnabled = diskCacheConfig !== 'false'
 let diskCacheName = 'disk'
 if (diskCacheEnabled) {
   bazelrc.push(`build --disk_cache=${bazelDisk}`)
-  diskCacheName = `${diskCacheName}-${diskCacheConfig}`
+  if (diskCacheName !== 'true') {
+    diskCacheName = `${diskCacheName}-${diskCacheConfig}`
+  }
 }
 
 const repositoryCacheEnabled = core.getBooleanInput('repository-cache')

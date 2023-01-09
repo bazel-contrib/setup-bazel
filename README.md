@@ -46,7 +46,7 @@ Default `false`.
 GitHub API token used by `external-cache` to fetch all available caches.
 Not used when external cache is disabled.
 
-Default `""`.
+Default [`${{ github.token }}`][5].
 
 ## Examples
 
@@ -74,7 +74,6 @@ Default `""`.
     disk-cache: true
     external-cache: true
     repository-cache: true
-    token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Separate disk cache between workflows
@@ -92,10 +91,10 @@ Default `""`.
   with:
     external-cache: |
       npm: package-lock.json
-    token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 [1]: https://github.com/bazelbuild/bazelisk
 [2]: https://bazel.build/remote/caching#disk-cache
 [3]: https://docs-staging.bazel.build/2338/versions/main/guide.html#the-repository-cache
 [4]: https://bazel.build/run/bazelrc
+[5]: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context

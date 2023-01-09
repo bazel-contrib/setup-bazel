@@ -124,8 +124,7 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
-  token: core.getInput('token'),
-  useGnuTarOnWindows: core.getBooleanInput('use-gnu-tar-on-windows')
+  token: core.getInput('token')
 }
 
 
@@ -74518,7 +74517,6 @@ async function setupBazel () {
   await setupBazelrc()
   core.endGroup()
 
-  await useGnuTarOnWindows()
   await restoreCache(config.bazeliskCache)
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)
@@ -74533,16 +74531,6 @@ async function setupBazelrc () {
 
   for (const line of config.bazelrc) {
     fs.appendFileSync(config.paths.bazelrc, `${line}\n`)
-  }
-}
-
-// https://github.com/actions/cache/blob/main/tips-and-workarounds.md#improving-cache-restore-performance-on-windowsusing-cross-os-caching
-async function useGnuTarOnWindows () {
-  if (config.useGnuTarOnWindows && config.platform === 'win32') {
-    if (config.bazeliskCache.enabled || config.diskCache.enabled ||
-      config.repositoryCache.enabled || config.externalCache.enabled) {
-      core.addPath('C:\\Program Files\\Git\\usr\\bin')
-    }
   }
 }
 

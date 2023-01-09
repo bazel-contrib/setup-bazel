@@ -32,11 +32,7 @@ inputs:
   token:
     description: GitHub token to use for external cache
     required: false
-    default: ""
-  use-gnu-tar-on-windows:
-    description: Use GNU tar on Windows
-    required: false
-    default: true
+    default: ${{ github.token }}
 
 runs:
   using: node16

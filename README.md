@@ -48,12 +48,6 @@ Not used when external cache is disabled.
 
 Default `""`.
 
-### `use-gnu-tar-on-windows`
-
-Enable GNU `tar` on Windows to optimize cache performance.
-
-Default `true`.
-
 ## Examples
 
 ### Simple configuration

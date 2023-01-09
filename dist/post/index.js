@@ -124,8 +124,7 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
-  token: core.getInput('token'),
-  useGnuTarOnWindows: core.getBooleanInput('use-gnu-tar-on-windows')
+  token: core.getInput('token')
 }
 
 

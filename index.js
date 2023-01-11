@@ -1,4 +1,5 @@
 const fs = require('fs')
+const { setTimeout } = require('node:timers/promises')
 const core = require('@actions/core')
 const cache = require('@actions/cache')
 const github = require('@actions/github')
@@ -88,7 +89,13 @@ async function restoreCache (cacheConfig) {
 
   console.log(`Attempting to restore ${name} cache from ${key}`)
 
-  const restoredKey = await cache.restoreCache(paths, key, [restoreKey])
+  const restoredKey = await setTimeout(1000, async function() {
+    return await cache.restoreCache(
+      paths, key, [restoreKey],
+      { segmentTimeoutInMs: 300000 } // 5 minutes
+    )
+  }())
+
   if (restoredKey) {
     console.log(`Successfully restored cache from ${restoredKey}`)
 

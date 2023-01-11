@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Install and configure Bazel for GitHub Actions",
   "main": "index.js",
+  "engines" : {
+    "node" : "16.x"
+  },
   "scripts": {
     "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,3 +1,4 @@
+const fs = require('fs')
 const path = require('path')
 const cache = require('@actions/cache')
 const core = require('@actions/core')
@@ -26,6 +27,7 @@ async function saveExternalCaches (cacheConfig) {
     { implicitDescendants: false }
   )
   const externalPaths = await globber.glob()
+  const savedCaches = []
 
   for (const externalPath of externalPaths) {
     const size = await getFolderSize(externalPath)
@@ -37,10 +39,22 @@ async function saveExternalCaches (cacheConfig) {
       await saveCache({
         enabled: true,
         files: cacheConfig[name]?.files || cacheConfig.default.files,
-        name: cacheConfig.name(name),
-        paths: cacheConfig.paths(name)
+        name: cacheConfig.default.name(name),
+        paths: cacheConfig.default.paths(name)
       })
+      savedCaches.push(name)
     }
+  }
+
+  if (savedCaches.length > 0) {
+    const path = cacheConfig.manifest.path
+    fs.writeFileSync(path, savedCaches.join('\n'))
+    await saveCache({
+      enabled: true,
+      files: cacheConfig.manifest.files,
+      name: cacheConfig.manifest.name,
+      paths: [path]
+    })
   }
 }
 

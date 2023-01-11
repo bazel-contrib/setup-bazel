@@ -2,6 +2,7 @@ const fs = require('fs')
 const os = require('os')
 const yaml = require('yaml')
 const core = require('@actions/core')
+const github = require('@actions/github')
 
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
@@ -57,29 +58,38 @@ if (googleCredentials.length > 0 && !googleCredentialsSaved) {
 const bazelExternal = core.toPosixPath(`${bazelOutputBase}/external`)
 const externalCache = {}
 if (externalCacheConfig) {
+  const { workflow, job } = github.context
+  const manifestName = externalCacheConfig.name ||
+    `${workflow.toLowerCase().replaceAll(/[ /]/g, '-')}-${job}`
+
   externalCache.enabled = true
   externalCache.minSize = 10 // MB
   externalCache.baseCacheKey = `${baseCacheKey}-external-`
-  externalCache.regexp = `^${baseCacheKey}-external-(?<name>.+)-[a-z0-9]+$`
+  externalCache.manifest = {
+    files: [
+      'WORKSPACE.bazel',
+      'WORKSPACE'
+    ],
+    name: `external-${manifestName}-manifest`,
+    path: `${os.tmpdir()}/external-cache-manifest.txt`
+  }
   externalCache.default = {
     files: [
       'WORKSPACE.bazel',
       'WORKSPACE'
-    ]
-  }
-  externalCache.name = (name) => {
-    return `external-${name}`
-  }
-  externalCache.paths = (name) => {
-    return [
-      `${bazelExternal}/@${name}.marker`,
-      `${bazelExternal}/${name}`
-    ]
+    ],
+    name: (name) => { return `external-${name}` },
+    paths: (name) => {
+      return [
+        `${bazelExternal}/@${name}.marker`,
+        `${bazelExternal}/${name}`
+      ]
+    }
   }
 
-  for (const name in externalCacheConfig) {
+  for (const name in externalCacheConfig.manifest) {
     externalCache[name] = {
-      files: Array(externalCacheConfig[name]).flat()
+      files: Array(externalCacheConfig.manifest[name]).flat()
     }
   }
 }
@@ -118,5 +128,4 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
-  token: core.getInput('token')
 }

@@ -29,10 +29,6 @@ inputs:
     description: Cache repositories based on WORKSPACE
     required: false
     default: false
-  token:
-    description: GitHub token to use for external cache
-    required: false
-    default: ${{ github.token }}
 
 runs:
   using: node16

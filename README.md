@@ -53,13 +53,13 @@ Default [`${{ github.token }}`][5].
 ### Simple configuration
 
 ```yaml
-- uses: p0deje/setup-bazel@0.1.0
+- uses: p0deje/setup-bazel@0.2.0
 ```
 
 ### Additional `.bazelrc` options
 
 ```yaml
-- uses: p0deje/setup-bazel@0.1.0
+- uses: p0deje/setup-bazel@0.2.0
   with:
     bazelrc: |
       build --show_timestamps
@@ -68,7 +68,7 @@ Default [`${{ github.token }}`][5].
 ### Full caching enabled
 
 ```yaml
-- uses: p0deje/setup-bazel@0.1.0
+- uses: p0deje/setup-bazel@0.2.0
   with:
     bazelisk-cache: true
     disk-cache: true
@@ -79,7 +79,7 @@ Default [`${{ github.token }}`][5].
 ### Separate disk cache between workflows
 
 ```yaml
-- uses: p0deje/setup-bazel@0.1.0
+- uses: p0deje/setup-bazel@0.2.0
   with:
     disk-cache: ${{ github.workflow }}}
 ```
@@ -87,10 +87,11 @@ Default [`${{ github.token }}`][5].
 ### Cache external repository based on different files
 
 ```yaml
-- uses: p0deje/setup-bazel@0.1.0
+- uses: p0deje/setup-bazel@0.2.0
   with:
     external-cache: |
-      npm: package-lock.json
+      manifest:
+        npm: package-lock.json
 ```
 
 [1]: https://github.com/bazelbuild/bazelisk

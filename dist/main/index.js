@@ -8,6 +8,7 @@ const fs = __nccwpck_require__(7147)
 const os = __nccwpck_require__(2037)
 const yaml = __nccwpck_require__(4083)
 const core = __nccwpck_require__(2186)
+const github = __nccwpck_require__(5438)
 
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
@@ -63,29 +64,38 @@ if (googleCredentials.length > 0 && !googleCredentialsSaved) {
 const bazelExternal = core.toPosixPath(`${bazelOutputBase}/external`)
 const externalCache = {}
 if (externalCacheConfig) {
+  const { workflow, job } = github.context
+  const manifestName = externalCacheConfig.name ||
+    `${workflow.toLowerCase().replaceAll(/[ /]/g, '-')}-${job}`
+
   externalCache.enabled = true
   externalCache.minSize = 10 // MB
   externalCache.baseCacheKey = `${baseCacheKey}-external-`
-  externalCache.regexp = `^${baseCacheKey}-external-(?<name>.+)-[a-z0-9]+$`
+  externalCache.manifest = {
+    files: [
+      'WORKSPACE.bazel',
+      'WORKSPACE'
+    ],
+    name: `external-${manifestName}-manifest`,
+    path: `${os.tmpdir()}/external-cache-manifest.txt`
+  }
   externalCache.default = {
     files: [
       'WORKSPACE.bazel',
       'WORKSPACE'
-    ]
-  }
-  externalCache.name = (name) => {
-    return `external-${name}`
-  }
-  externalCache.paths = (name) => {
-    return [
-      `${bazelExternal}/@${name}.marker`,
-      `${bazelExternal}/${name}`
-    ]
+    ],
+    name: (name) => { return `external-${name}` },
+    paths: (name) => {
+      return [
+        `${bazelExternal}/@${name}.marker`,
+        `${bazelExternal}/${name}`
+      ]
+    }
   }
 
-  for (const name in externalCacheConfig) {
+  for (const name in externalCacheConfig.manifest) {
     externalCache[name] = {
-      files: Array(externalCacheConfig[name]).flat()
+      files: Array(externalCacheConfig.manifest[name]).flat()
     }
   }
 }
@@ -124,7 +134,6 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
-  token: core.getInput('token')
 }
 
 
@@ -66132,14 +66141,6 @@ module.exports = require("net");
 
 /***/ }),
 
-/***/ 9397:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:timers/promises");
-
-/***/ }),
-
 /***/ 2037:
 /***/ ((module) => {
 
@@ -74616,10 +74617,8 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const fs = __nccwpck_require__(7147)
-const { setTimeout } = __nccwpck_require__(9397)
 const core = __nccwpck_require__(2186)
 const cache = __nccwpck_require__(7799)
-const github = __nccwpck_require__(5438)
 const glob = __nccwpck_require__(8090)
 const config = __nccwpck_require__(5532)
 
@@ -74661,33 +74660,26 @@ async function restoreExternalCaches (cacheConfig) {
     return
   }
 
-  const repo = github.context.repo
-  const octokit = github.getOctokit(config.token)
-  const { data: { actions_caches: caches } } = await octokit.rest.actions.getActionsCacheList({
-    owner: repo.owner,
-    repo: repo.repo,
-    key: cacheConfig.baseCacheKey,
-    per_page: 100
+  // First fetch the manifest of external caches used.
+  const path = cacheConfig.manifest.path
+  await restoreCache({
+    enabled: true,
+    files: cacheConfig.manifest.files,
+    name: cacheConfig.manifest.name,
+    paths: [path]
   })
 
-  const names = new Set([])
-  const regexp = new RegExp(cacheConfig.regexp)
-  for (const cache of caches) {
-    core.debug(`Cache key is ${cache.key}`)
-
-    const match = cache.key.match(regexp)
-    if (match) {
-      names.add(match.groups.name)
+  // Now restore all external caches defined in manifest
+  if (fs.existsSync(path)) {
+    const manifest = fs.readFileSync(path, { encoding: 'utf8' })
+    for (const name of manifest.split('\n').filter(s => s)) {
+      await restoreCache({
+        enabled: true,
+        files: cacheConfig[name]?.files || cacheConfig.default.files,
+        name: cacheConfig.default.name(name),
+        paths: cacheConfig.default.paths(name)
+      })
     }
-  }
-
-  for (const name of names) {
-    await restoreCache({
-      enabled: true,
-      files: cacheConfig[name]?.files || cacheConfig.default.files,
-      name: cacheConfig.name(name),
-      paths: cacheConfig.paths(name)
-    })
   }
 }
 
@@ -74706,12 +74698,10 @@ async function restoreCache (cacheConfig) {
 
   console.log(`Attempting to restore ${name} cache from ${key}`)
 
-  const restoredKey = await setTimeout(1000, async function() {
-    return await cache.restoreCache(
-      paths, key, [restoreKey],
-      { segmentTimeoutInMs: 300000 } // 5 minutes
-    )
-  }())
+  const restoredKey = await cache.restoreCache(
+    paths, key, [restoreKey],
+    { segmentTimeoutInMs: 300000 } // 5 minutes
+  )
 
   if (restoredKey) {
     console.log(`Successfully restored cache from ${restoredKey}`)

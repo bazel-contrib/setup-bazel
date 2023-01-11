@@ -1,8 +1,6 @@
 const fs = require('fs')
-const { setTimeout } = require('node:timers/promises')
 const core = require('@actions/core')
 const cache = require('@actions/cache')
-const github = require('@actions/github')
 const glob = require('@actions/glob')
 const config = require('./config')
 
@@ -44,33 +42,26 @@ async function restoreExternalCaches (cacheConfig) {
     return
   }
 
-  const repo = github.context.repo
-  const octokit = github.getOctokit(config.token)
-  const { data: { actions_caches: caches } } = await octokit.rest.actions.getActionsCacheList({
-    owner: repo.owner,
-    repo: repo.repo,
-    key: cacheConfig.baseCacheKey,
-    per_page: 100
+  // First fetch the manifest of external caches used.
+  const path = cacheConfig.manifest.path
+  await restoreCache({
+    enabled: true,
+    files: cacheConfig.manifest.files,
+    name: cacheConfig.manifest.name,
+    paths: [path]
   })
 
-  const names = new Set([])
-  const regexp = new RegExp(cacheConfig.regexp)
-  for (const cache of caches) {
-    core.debug(`Cache key is ${cache.key}`)
-
-    const match = cache.key.match(regexp)
-    if (match) {
-      names.add(match.groups.name)
+  // Now restore all external caches defined in manifest
+  if (fs.existsSync(path)) {
+    const manifest = fs.readFileSync(path, { encoding: 'utf8' })
+    for (const name of manifest.split('\n').filter(s => s)) {
+      await restoreCache({
+        enabled: true,
+        files: cacheConfig[name]?.files || cacheConfig.default.files,
+        name: cacheConfig.default.name(name),
+        paths: cacheConfig.default.paths(name)
+      })
     }
-  }
-
-  for (const name of names) {
-    await restoreCache({
-      enabled: true,
-      files: cacheConfig[name]?.files || cacheConfig.default.files,
-      name: cacheConfig.name(name),
-      paths: cacheConfig.paths(name)
-    })
   }
 }
 
@@ -89,12 +80,10 @@ async function restoreCache (cacheConfig) {
 
   console.log(`Attempting to restore ${name} cache from ${key}`)
 
-  const restoredKey = await setTimeout(1000, async function() {
-    return await cache.restoreCache(
-      paths, key, [restoreKey],
-      { segmentTimeoutInMs: 300000 } // 5 minutes
-    )
-  }())
+  const restoredKey = await cache.restoreCache(
+    paths, key, [restoreKey],
+    { segmentTimeoutInMs: 300000 } // 5 minutes
+  )
 
   if (restoredKey) {
     console.log(`Successfully restored cache from ${restoredKey}`)

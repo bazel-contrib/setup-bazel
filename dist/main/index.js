@@ -66189,6 +66189,14 @@ module.exports = require("timers");
 
 /***/ }),
 
+/***/ 8670:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("timers/promises");
+
+/***/ }),
+
 /***/ 4404:
 /***/ ((module) => {
 
@@ -74617,6 +74625,7 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const fs = __nccwpck_require__(7147)
+const { setTimeout } = __nccwpck_require__(8670)
 const core = __nccwpck_require__(2186)
 const cache = __nccwpck_require__(7799)
 const glob = __nccwpck_require__(8090)
@@ -74688,32 +74697,35 @@ async function restoreCache (cacheConfig) {
     return
   }
 
-  core.startGroup(`Restore cache for ${cacheConfig.name}`)
+  const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
+  await setTimeout(delay, async function () {
+    core.startGroup(`Restore cache for ${cacheConfig.name}`)
 
-  const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
-  const name = cacheConfig.name
-  const paths = cacheConfig.paths
-  const restoreKey = `${config.baseCacheKey}-${name}-`
-  const key = `${restoreKey}${hash}`
+    const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
+    const name = cacheConfig.name
+    const paths = cacheConfig.paths
+    const restoreKey = `${config.baseCacheKey}-${name}-`
+    const key = `${restoreKey}${hash}`
 
-  console.log(`Attempting to restore ${name} cache from ${key}`)
+    console.log(`Attempting to restore ${name} cache from ${key}`)
 
-  const restoredKey = await cache.restoreCache(
-    paths, key, [restoreKey],
-    { segmentTimeoutInMs: 300000 } // 5 minutes
-  )
+    const restoredKey = await cache.restoreCache(
+      paths, key, [restoreKey],
+      { segmentTimeoutInMs: 300000 } // 5 minutes
+    )
 
-  if (restoredKey) {
-    console.log(`Successfully restored cache from ${restoredKey}`)
+    if (restoredKey) {
+      console.log(`Successfully restored cache from ${restoredKey}`)
 
-    if (restoredKey === key) {
-      core.saveState(`${name}-cache-hit`, 'true')
+      if (restoredKey === key) {
+        core.saveState(`${name}-cache-hit`, 'true')
+      }
+    } else {
+      console.log(`Failed to restore ${name} cache`)
     }
-  } else {
-    console.log(`Failed to restore ${name} cache`)
-  }
 
-  core.endGroup()
+    core.endGroup()
+  }())
 }
 
 run()

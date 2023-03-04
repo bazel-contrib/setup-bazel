@@ -41,13 +41,6 @@ Enable [`repository_cache`][3] and store it on GitHub based on contents of a `WO
 
 Default `false`.
 
-### `token`
-
-GitHub API token used by `external-cache` to fetch all available caches.
-Not used when external cache is disabled.
-
-Default [`${{ github.token }}`][5].
-
 ## Examples
 
 ### Simple configuration

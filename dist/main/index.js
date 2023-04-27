@@ -19,6 +19,7 @@ const platform = os.platform()
 let bazelDisk = core.toPosixPath(`${homeDir}/.cache/bazel-disk`)
 let bazelRepository = core.toPosixPath(`${homeDir}/.cache/bazel-repo`)
 let bazelOutputBase = `${homeDir}/.bazel`
+let bazelrcPaths = [core.toPosixPath(`${homeDir}/.bazelrc`)]
 let userCacheDir = `${homeDir}/.cache`
 
 switch (platform) {
@@ -30,6 +31,9 @@ switch (platform) {
     bazelRepository = 'D:/_bazel-repo'
     bazelOutputBase = 'D:/_bazel'
     userCacheDir = `${homeDir}/AppData/Local`
+    if (process.env.HOME) {
+      bazelrcPaths.push(core.toPosixPath(`${process.env.HOME}/.bazelrc`))
+    }
     break
 }
 
@@ -122,7 +126,7 @@ module.exports = {
   paths: {
     bazelExternal,
     bazelOutputBase: core.toPosixPath(bazelOutputBase),
-    bazelrc: core.toPosixPath(`${homeDir}/.bazelrc`)
+    bazelrc: bazelrcPaths
   },
   platform,
   repositoryCache: {
@@ -74654,13 +74658,12 @@ async function setupBazel () {
 }
 
 async function setupBazelrc () {
-  fs.writeFileSync(
-    config.paths.bazelrc,
-    `startup --output_base=${config.paths.bazelOutputBase}\n`
-  )
-
-  for (const line of config.bazelrc) {
-    fs.appendFileSync(config.paths.bazelrc, `${line}\n`)
+  for (const bazelrcPath of config.paths.bazelrc) {
+    fs.writeFileSync(
+      bazelrcPath,
+      `startup --output_base=${config.paths.bazelOutputBase}\n`
+    )
+    fs.appendFileSync(bazelrcPath, config.bazelrc.join("\n"))
   }
 }
 

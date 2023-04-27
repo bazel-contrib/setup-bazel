@@ -13,6 +13,7 @@ const platform = os.platform()
 let bazelDisk = core.toPosixPath(`${homeDir}/.cache/bazel-disk`)
 let bazelRepository = core.toPosixPath(`${homeDir}/.cache/bazel-repo`)
 let bazelOutputBase = `${homeDir}/.bazel`
+let bazelrcPaths = [core.toPosixPath(`${homeDir}/.bazelrc`)]
 let userCacheDir = `${homeDir}/.cache`
 
 switch (platform) {
@@ -24,6 +25,9 @@ switch (platform) {
     bazelRepository = 'D:/_bazel-repo'
     bazelOutputBase = 'D:/_bazel'
     userCacheDir = `${homeDir}/AppData/Local`
+    if (process.env.HOME) {
+      bazelrcPaths.push(core.toPosixPath(`${process.env.HOME}/.bazelrc`))
+    }
     break
 }
 
@@ -116,7 +120,7 @@ module.exports = {
   paths: {
     bazelExternal,
     bazelOutputBase: core.toPosixPath(bazelOutputBase),
-    bazelrc: core.toPosixPath(`${homeDir}/.bazelrc`)
+    bazelrc: bazelrcPaths
   },
   platform,
   repositoryCache: {

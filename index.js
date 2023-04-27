@@ -28,13 +28,12 @@ async function setupBazel () {
 }
 
 async function setupBazelrc () {
-  fs.writeFileSync(
-    config.paths.bazelrc,
-    `startup --output_base=${config.paths.bazelOutputBase}\n`
-  )
-
-  for (const line of config.bazelrc) {
-    fs.appendFileSync(config.paths.bazelrc, `${line}\n`)
+  for (const bazelrcPath of config.paths.bazelrc) {
+    fs.writeFileSync(
+      bazelrcPath,
+      `startup --output_base=${config.paths.bazelOutputBase}\n`
+    )
+    fs.appendFileSync(bazelrcPath, config.bazelrc.join("\n"))
   }
 }
 

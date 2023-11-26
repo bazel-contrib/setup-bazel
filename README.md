@@ -46,13 +46,13 @@ Default `false`.
 ### Simple configuration
 
 ```yaml
-- uses: p0deje/setup-bazel@0.2.0
+- uses: p0deje/setup-bazel@0.3.1
 ```
 
 ### Additional `.bazelrc` options
 
 ```yaml
-- uses: p0deje/setup-bazel@0.2.0
+- uses: p0deje/setup-bazel@0.3.1
   with:
     bazelrc: |
       build --show_timestamps
@@ -61,7 +61,7 @@ Default `false`.
 ### Full caching enabled
 
 ```yaml
-- uses: p0deje/setup-bazel@0.2.0
+- uses: p0deje/setup-bazel@0.3.1
   with:
     bazelisk-cache: true
     disk-cache: true
@@ -72,7 +72,7 @@ Default `false`.
 ### Separate disk cache between workflows
 
 ```yaml
-- uses: p0deje/setup-bazel@0.2.0
+- uses: p0deje/setup-bazel@0.3.1
   with:
     disk-cache: ${{ github.workflow }}}
 ```
@@ -80,7 +80,7 @@ Default `false`.
 ### Cache external repository based on different files
 
 ```yaml
-- uses: p0deje/setup-bazel@0.2.0
+- uses: p0deje/setup-bazel@0.3.1
   with:
     external-cache: |
       manifest:

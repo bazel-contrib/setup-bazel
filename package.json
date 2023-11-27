@@ -1,6 +1,6 @@
 {
   "name": "setup-bazel",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Install and configure Bazel for GitHub Actions",
   "main": "index.js",
   "engines" : {

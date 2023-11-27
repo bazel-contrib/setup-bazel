@@ -12,13 +12,9 @@ async function getFolderSize (rootItemPath, options = {}) {
   async function processItem (itemPath) {
     if (options.ignore?.test(itemPath)) return
 
-    try {
-      const stats = fs.lstatSync(itemPath, { bigint: true })
-    } catch (error) {
-      return
-    }
-
+    const stats = lstatSync(itemPath, { bigint: true })
     if (typeof stats !== 'object') return
+
     fileSizes.set(stats.ino, stats.size)
 
     if (stats.isDirectory()) {
@@ -42,6 +38,14 @@ async function getFolderSize (rootItemPath, options = {}) {
   }
 
   return folderSize
+}
+
+function lstatSync(path, opts) {
+  try {
+    return fs.lstatSync(path, opts)
+  } catch (error) {
+    return
+  }
 }
 
 module.exports = { getFolderSize }

@@ -5,7 +5,7 @@ const cache = require('@actions/cache')
 const glob = require('@actions/glob')
 const config = require('./config')
 
-async function run () {
+async function run() {
   try {
     await setupBazel()
   } catch (error) {
@@ -13,7 +13,7 @@ async function run () {
   }
 }
 
-async function setupBazel () {
+async function setupBazel() {
   core.startGroup('Configure Bazel')
   console.log('Configuration:')
   console.log(JSON.stringify(config, null, 2))
@@ -27,7 +27,7 @@ async function setupBazel () {
   await restoreExternalCaches(config.externalCache)
 }
 
-async function setupBazelrc () {
+async function setupBazelrc() {
   for (const bazelrcPath of config.paths.bazelrc) {
     fs.writeFileSync(
       bazelrcPath,
@@ -37,7 +37,7 @@ async function setupBazelrc () {
   }
 }
 
-async function restoreExternalCaches (cacheConfig) {
+async function restoreExternalCaches(cacheConfig) {
   if (!cacheConfig.enabled) {
     return
   }
@@ -56,7 +56,7 @@ async function restoreExternalCaches (cacheConfig) {
     const manifest = fs.readFileSync(path, { encoding: 'utf8' })
     for (const name of manifest.split('\n').filter(s => s)) {
       await restoreCache({
-        enabled: true,
+        enabled: cacheConfig[name]?.enabled ?? cacheConfig.default.enabled,
         files: cacheConfig[name]?.files || cacheConfig.default.files,
         name: cacheConfig.default.name(name),
         paths: cacheConfig.default.paths(name)
@@ -65,7 +65,7 @@ async function restoreExternalCaches (cacheConfig) {
   }
 }
 
-async function restoreCache (cacheConfig) {
+async function restoreCache(cacheConfig) {
   if (!cacheConfig.enabled) {
     return
   }

@@ -6,18 +6,18 @@ const glob = require('@actions/glob')
 const config = require('./config')
 const { getFolderSize } = require('./util')
 
-async function run () {
+async function run() {
   await saveCaches()
 }
 
-async function saveCaches () {
+async function saveCaches() {
   await saveCache(config.bazeliskCache)
   await saveCache(config.diskCache)
   await saveCache(config.repositoryCache)
   await saveExternalCaches(config.externalCache)
 }
 
-async function saveExternalCaches (cacheConfig) {
+async function saveExternalCaches(cacheConfig) {
   if (!cacheConfig.enabled) {
     return
   }
@@ -37,7 +37,7 @@ async function saveExternalCaches (cacheConfig) {
     if (sizeMB >= cacheConfig.minSize) {
       const name = path.basename(externalPath)
       await saveCache({
-        enabled: true,
+        enabled: cacheConfig[name]?.enabled ?? cacheConfig.default.enabled,
         files: cacheConfig[name]?.files || cacheConfig.default.files,
         name: cacheConfig.default.name(name),
         paths: cacheConfig.default.paths(name)
@@ -58,7 +58,7 @@ async function saveExternalCaches (cacheConfig) {
   }
 }
 
-async function saveCache (cacheConfig) {
+async function saveCache(cacheConfig) {
   if (!cacheConfig.enabled) {
     return
   }

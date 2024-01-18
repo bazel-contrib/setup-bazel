@@ -78,6 +78,7 @@ if (externalCacheConfig) {
     path: `${os.tmpdir()}/external-cache-manifest.txt`
   }
   externalCache.default = {
+    enabled: true,
     files: [
       'WORKSPACE.bazel',
       'WORKSPACE'
@@ -93,6 +94,7 @@ if (externalCacheConfig) {
 
   for (const name in externalCacheConfig.manifest) {
     externalCache[name] = {
+      enabled: externalCacheConfig.manifest[name] != false,
       files: Array(externalCacheConfig.manifest[name]).flat()
     }
   }

@@ -87,6 +87,16 @@ Default `false`.
         npm: package-lock.json
 ```
 
+### Disable individual external repositories conditionally
+
+```yaml
+- uses: p0deje/setup-bazel@0.3.2
+  with:
+    external-cache: |
+      manifest:
+        ruby: ${{ matrix.os == 'windows' && 'false' || '.ruby-version' }}
+```
+
 [1]: https://github.com/bazelbuild/bazelisk
 [2]: https://bazel.build/remote/caching#disk-cache
 [3]: https://docs-staging.bazel.build/2338/versions/main/guide.html#the-repository-cache

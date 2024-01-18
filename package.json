@@ -1,10 +1,10 @@
 {
   "name": "setup-bazel",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Install and configure Bazel for GitHub Actions",
   "main": "index.js",
-  "engines" : {
-    "node" : "16.x"
+  "engines": {
+    "node": "16.x"
   },
   "scripts": {
     "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post",

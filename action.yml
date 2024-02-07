@@ -1,10 +1,14 @@
 name: Setup Bazel
+description: Configure Bazel(isk) and its caches
 
 inputs:
   bazelisk-cache:
     description: Caches Bazelisk downloads based on .bazelversion
     required: false
-    default: false
+    default: "false"
+  bazelisk-version:
+    description: The Bazelisk version to download and use if necessary
+    default: ""
   bazelrc:
     description: Extra contents to write to user .bazelrc
     required: false
@@ -12,11 +16,11 @@ inputs:
   cache-version:
     description: Version of all caches
     required: false
-    default: 1
+    default: "1"
   disk-cache:
     description: Cache actions outputs based on BUILD
     required: false
-    default: false
+    default: "false"
   external-cache:
     description: Cache external 10MB+ repositories based on WORKSPACE
     required: false
@@ -28,7 +32,11 @@ inputs:
   repository-cache:
     description: Cache repositories based on WORKSPACE
     required: false
-    default: false
+    default: "false"
+  token:
+    description: GitHub token to query Bazelisk releases
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: node16

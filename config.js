@@ -4,10 +4,12 @@ const yaml = require('yaml')
 const core = require('@actions/core')
 const github = require('@actions/github')
 
+const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 
 const homeDir = os.homedir()
+const arch = os.arch()
 const platform = os.platform()
 
 let bazelDisk = core.toPosixPath(`${homeDir}/.cache/bazel-disk`)
@@ -108,6 +110,7 @@ module.exports = {
     name: 'bazelisk',
     paths: [core.toPosixPath(`${userCacheDir}/bazelisk`)]
   },
+  bazeliskVersion,
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
@@ -124,7 +127,10 @@ module.exports = {
     bazelOutputBase: core.toPosixPath(bazelOutputBase),
     bazelrc: bazelrcPaths
   },
-  platform,
+  os: {
+    arch,
+    platform,
+  },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
     files: [

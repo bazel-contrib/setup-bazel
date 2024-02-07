@@ -1,6 +1,6 @@
 # setup-bazel
 
-This action allows to properly configure Bazel on all supported operating systems
+This action allows to properly configure Bazelisk and Bazel on all operating systems
 and provides an advanced fine-grained caching to improve workflows performance.
 
 ## Inputs
@@ -10,6 +10,15 @@ and provides an advanced fine-grained caching to improve workflows performance.
 Cache [`bazelisk`][1] downloads based on contents of a `.bazelversion` file.
 
 Default `false`.
+
+### `bazelisk-version`
+
+[`bazelisk`][1] version to download and use.
+
+Supports semver specification and ranges.
+Leave empty to use [pre-installed Bazelisk][8].
+
+Default `""`.
 
 ### `bazelrc`
 
@@ -47,6 +56,14 @@ Default `false`.
 
 ```yaml
 - uses: p0deje/setup-bazel@0.4.0
+```
+
+### Custom Bazelisk version
+
+```yaml
+- uses: p0deje/setup-bazel@0.4.0
+  with:
+    bazelisk-version: 1.19.0
 ```
 
 ### Additional `.bazelrc` options
@@ -97,8 +114,18 @@ Default `false`.
         ruby: ${{ matrix.os == 'windows' && 'false' || '.ruby-version' }}
 ```
 
+## Migrating from [`bazelbuild/setup-bazelisk`][6]
+
+You can simply replace `bazelbuild/setup-bazelisk` action with `p0deje/setup-bazel`.
+However, if you used a `bazel-version` input before, you will need to remove it in favor
+[other ways to specify Bazel version][7].
+
+
 [1]: https://github.com/bazelbuild/bazelisk
 [2]: https://bazel.build/remote/caching#disk-cache
 [3]: https://docs-staging.bazel.build/2338/versions/main/guide.html#the-repository-cache
 [4]: https://bazel.build/run/bazelrc
 [5]: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+[6]: https://github.com/bazelbuild/setup-bazelisk
+[7]: https://github.com/bazelbuild/bazelisk/blob/master/README.md#how-does-bazelisk-know-which-bazel-version-to-run
+[8]: https://github.com/actions/runner-images/pull/490

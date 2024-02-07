@@ -2,7 +2,9 @@ const fs = require('fs')
 const { setTimeout } = require('timers/promises')
 const core = require('@actions/core')
 const cache = require('@actions/cache')
+const github = require('@actions/github')
 const glob = require('@actions/glob')
+const tc = require('@actions/tool-cache')
 const config = require('./config')
 
 async function run() {
@@ -21,10 +23,80 @@ async function setupBazel() {
   await setupBazelrc()
   core.endGroup()
 
+  await setupBazelisk()
   await restoreCache(config.bazeliskCache)
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
+}
+
+async function setupBazelisk() {
+  if (config.bazeliskVersion.length == 0) {
+    return
+  }
+
+  core.startGroup('Setup Bazelisk')
+  const toolPath = tc.find('bazelisk', config.bazeliskVersion)
+  if (toolPath) {
+    console.log(`Found in cache @ ${toolPath}`)
+  } else {
+    await downloadBazelisk()
+  }
+  core.endGroup()
+}
+
+async function downloadBazelisk() {
+  const version = config.bazeliskVersion
+  console.log(`Attempting to download ${version}`)
+
+  // Possible values are 'arm', 'arm64', 'ia32', 'mips', 'mipsel', 'ppc', 'ppc64', 's390', 's390x' and 'x64'.
+  // Bazelisk filenames use 'amd64' and 'arm64'.
+  let arch = config.os.arch
+  if (arch == 'x64') {
+    arch = 'amd64'
+  }
+
+  // Possible values are 'aix', 'darwin', 'freebsd', 'linux', 'openbsd', 'sunos' and 'win32'.
+  // Bazelisk filenames use 'darwin', 'linux' and 'windows'.
+  let platform = config.os.platform
+  if (platform == "win32") {
+    platform = "windows"
+  }
+
+  let filename = `bazelisk-${platform}-${arch}`
+  if (platform == 'windows') {
+    filename = `${filename}.exe`
+  }
+
+  const token = core.getInput('token')
+  const octokit = github.getOctokit(token)
+  const { data: releases } = await octokit.rest.repos.listReleases({
+    owner: 'bazelbuild',
+    repo: 'bazelisk'
+  })
+
+  // Find version matching semver specification.
+  const tagName = tc.evaluateVersions(releases.map((r) => r.tag_name), version)
+  const release = releases.find((r) => r.tag_name === tagName)
+  if (!release) {
+    throw new Error(`Unable to find Bazelisk version ${version}`)
+  }
+
+  const asset = release.assets.find((a) => a.name == filename)
+  if (!asset) {
+    throw new Error(`Unable to find Bazelisk version ${version} for platform ${platform}/${arch}`)
+  }
+
+  const url = asset.browser_download_url
+  console.log(`Downloading from ${url}`)
+  const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
+
+  console.log('Adding to the cache...');
+  fs.chmodSync(downloadPath, '755');
+  const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
+  console.log(`Successfully cached bazelisk to ${cachePath}`)
+
+  core.addPath(cachePath)
 }
 
 async function setupBazelrc() {

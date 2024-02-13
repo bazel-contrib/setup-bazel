@@ -4,7 +4,7 @@
   "description": "Install and configure Bazel for GitHub Actions",
   "main": "index.js",
   "engines": {
-    "node": "16.x"
+    "node": "20.x"
   },
   "scripts": {
     "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post",

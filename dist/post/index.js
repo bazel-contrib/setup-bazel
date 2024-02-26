@@ -79,7 +79,9 @@ if (externalCacheConfig) {
   externalCache.baseCacheKey = `${baseCacheKey}-external-`
   externalCache.manifest = {
     files: [
+      'MODULE.bazel',
       'WORKSPACE.bazel',
+      'WORKSPACE.bzlmod',
       'WORKSPACE'
     ],
     name: `external-${manifestName}-manifest`,
@@ -88,7 +90,9 @@ if (externalCacheConfig) {
   externalCache.default = {
     enabled: true,
     files: [
+      'MODULE.bazel',
       'WORKSPACE.bazel',
+      'WORKSPACE.bzlmod',
       'WORKSPACE'
     ],
     name: (name) => { return `external-${name}` },
@@ -140,7 +144,9 @@ module.exports = {
   repositoryCache: {
     enabled: repositoryCacheEnabled,
     files: [
+      'MODULE.bazel',
       'WORKSPACE.bazel',
+      'WORKSPACE.bzlmod',
       'WORKSPACE'
     ],
     name: 'repository',

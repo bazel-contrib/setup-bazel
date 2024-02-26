@@ -22,7 +22,7 @@ inputs:
     required: false
     default: "false"
   external-cache:
-    description: Cache external 10MB+ repositories based on WORKSPACE
+    description: Cache external 10MB+ repositories based on MODULE.bazel/WORKSPACE
     required: false
     default: ""
   google-credentials:
@@ -30,7 +30,7 @@ inputs:
     required: false
     default: ""
   repository-cache:
-    description: Cache repositories based on WORKSPACE
+    description: Cache repositories based on MODULE.bazel/WORKSPACE
     required: false
     default: "false"
   token:

@@ -113,7 +113,7 @@ Default `false`.
 
 ### `external-cache`
 
-Cache `external/` repositories based on contents of a `WORKSPACE` file.
+Cache `external/` repositories based on contents of `MODULE.bazel` and `WORKSPACE` files.
 Only repositories exceeding 10MB are being cached.
 Each repository is stored in a separate cache.
 
@@ -176,7 +176,7 @@ Default `""`.
 
 ### `repository-cache`
 
-Enable [`repository_cache`][3] and store it on GitHub based on contents of a `WORKSPACE` file.
+Enable [`repository_cache`][3] and store it on GitHub based on contents of `MODULE.bazel` and `WORKSPACE` files.
 
 Default `false`.
 
@@ -185,6 +185,14 @@ Default `false`.
 You can simply replace `bazelbuild/setup-bazelisk` action with `p0deje/setup-bazel`.
 However, if you used a `bazel-version` input before, you will need to remove it in favor
 [other ways to specify Bazel version][7].
+
+## Development
+
+To build action, run the following command:
+
+```sh
+$ npm run build
+```
 
 
 [1]: https://github.com/bazelbuild/bazelisk

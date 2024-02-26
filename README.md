@@ -52,12 +52,6 @@ Default `false`.
 
 ## Examples
 
-### Simple configuration
-
-```yaml
-- uses: p0deje/setup-bazel@0.6.0
-```
-
 ### Custom Bazelisk version
 
 ```yaml
@@ -72,6 +66,7 @@ Default `false`.
 - uses: p0deje/setup-bazel@0.6.0
   with:
     bazelrc: |
+      common --color=yes
       build --show_timestamps
 ```
 

@@ -95854,10 +95854,7 @@ async function saveCache(cacheConfig) {
   try {
     core.startGroup(`Save cache for ${cacheConfig.name}`)
     const paths = cacheConfig.paths
-    const hash = await glob.hashFiles(
-      cacheConfig.files.join('\n'),
-      { followSymbolicLinks: false }
-    )
+    const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
     console.log(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)

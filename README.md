@@ -6,7 +6,7 @@ and provides an advanced fine-grained caching to improve workflows performance.
 ## Usage
 
 ```yaml
-- uses: p0deje/setup-bazel@0.6.0
+- uses: p0deje/setup-bazel@0.7.0
   with:
     # Avoid downloading Bazel every time.
     bazelisk-cache: true
@@ -39,7 +39,7 @@ Default `""`.
   #### Install Bazelisk 1.x
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       bazelisk-version: 1.x
   ```
@@ -47,7 +47,7 @@ Default `""`.
   #### Install exact Bazelisk version
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       bazelisk-version: 1.19.0
   ```
@@ -67,7 +67,7 @@ Default `""`.
   #### Enable Bzlmod
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       bazelrc: common --enable_bzlmod
   ```
@@ -75,7 +75,7 @@ Default `""`.
   #### Add colors and timestamps
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       bazelrc: |
         build --color=yes
@@ -97,7 +97,7 @@ Default `false`.
   #### Share a single disk cache
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       disk-cache: true
   ```
@@ -105,7 +105,7 @@ Default `false`.
   #### Separate disk caches between workflows
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       disk-cache: ${{ github.workflow }}}
   ```
@@ -129,7 +129,7 @@ Default `false`.
   #### Enable external repositories caches
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       external-cache: true
   ```
@@ -137,7 +137,7 @@ Default `false`.
   #### Cache NPM repositories based on `package-lock.json` contents
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       external-cache: |
         manifest:
@@ -147,7 +147,7 @@ Default `false`.
   #### Do not cache Ruby on Windows
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       external-cache: |
         manifest:
@@ -167,7 +167,7 @@ Default `""`.
   #### Authenticate via key
 
   ```yaml
-  - uses: p0deje/setup-bazel@0.6.0
+  - uses: p0deje/setup-bazel@0.7.0
     with:
       google-credentials: ${{ secrets.GOOGLE_CLOUD_KEY }}
   ```

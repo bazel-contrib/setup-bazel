@@ -178,7 +178,29 @@ Default `""`.
 
 Enable [`repository_cache`][3] and store it on GitHub based on contents of `MODULE.bazel` and `WORKSPACE` files.
 
+You can also pass a file (or list of files) which contents are used to calculate cache key.
+
 Default `false`.
+
+<details>
+  <summary>Examples</summary>
+
+  #### Store a single repository cache
+
+  ```yaml
+  - uses: p0deje/setup-bazel@0.7.1
+    with:
+      repository-cache: true
+  ```
+
+  #### Store a repository cache from a custom location
+
+  ```yaml
+  - uses: p0deje/setup-bazel@0.7.1
+    with:
+      repository-cache: examples/gem/WORKSPACE
+  ```
+</details>
 
 ## Migrating from [`bazelbuild/setup-bazelisk`][6]
 

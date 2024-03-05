@@ -52,9 +52,19 @@ if (diskCacheEnabled) {
   }
 }
 
-const repositoryCacheEnabled = core.getBooleanInput('repository-cache')
+const repositoryCacheConfig = core.getInput('repository-cache')
+const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
+let repositoryCacheFiles = [
+  'MODULE.bazel',
+  'WORKSPACE.bazel',
+  'WORKSPACE.bzlmod',
+  'WORKSPACE'
+]
 if (repositoryCacheEnabled) {
   bazelrc.push(`build --repository_cache=${bazelRepository}`)
+  if (repositoryCacheConfig !== 'true') {
+    repositoryCacheFiles = Array(repositoryCacheConfig).flat()
+  }
 }
 
 const googleCredentials = core.getInput('google-credentials')
@@ -143,12 +153,7 @@ module.exports = {
   },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
-    files: [
-      'MODULE.bazel',
-      'WORKSPACE.bazel',
-      'WORKSPACE.bzlmod',
-      'WORKSPACE'
-    ],
+    files: repositoryCacheFiles,
     name: 'repository',
     paths: [bazelRepository]
   },

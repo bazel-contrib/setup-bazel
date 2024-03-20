@@ -1,5 +1,5 @@
-name: Setup Bazel
-description: Configure Bazel(isk) and its caches
+name: Setup Bazel environment
+description: Setup a Bazel environment, including Bazelisk and fine-grained caching
 
 inputs:
   bazelisk-cache:

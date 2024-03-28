@@ -37,6 +37,10 @@ inputs:
     description: GitHub token to query Bazelisk releases
     required: false
     default: ${{ github.token }}
+  bazelrc-name:
+    description: The name of the .bazelrc file if changed with the --bazelrc flag
+    required: false
+    default: ".bazelrc"
 
 runs:
   using: node20

@@ -1,0 +1,26 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release
+        required: true
+        default: 0.0.0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version-file: package.json
+      - run: npm build
+      - run: |
+          git commit -am "Release ${{ inputs.tag }}"
+          git push
+          gh release create ${{ inputs.tag }} --generate-notes

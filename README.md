@@ -216,6 +216,10 @@ To build action, run the following command:
 $ npm run build
 ```
 
+## Release
+
+Use [Release][10] workflow to cut a new release.
+
 
 [1]: https://github.com/bazelbuild/bazelisk
 [2]: https://bazel.build/remote/caching#disk-cache
@@ -226,3 +230,4 @@ $ npm run build
 [7]: https://github.com/bazelbuild/bazelisk/blob/master/README.md#how-does-bazelisk-know-which-bazel-version-to-run
 [8]: https://github.com/actions/runner-images/pull/490
 [9]: https://bazel.build/reference/command-line-reference#flag--google_credentials
+[10]: https://github.com/bazel-contrib/setup-bazel/actions/workflows/release.yml

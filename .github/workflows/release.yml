@@ -1,11 +1,12 @@
 name: Release
+run-name: Release ${{ inputs.tag }}
 on:
   workflow_dispatch:
     inputs:
       tag:
         description: Tag to release
         required: true
-        default: 0.0.0
+        default: 0.1.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,8 +20,12 @@ jobs:
         with:
           cache: npm
           node-version-file: package.json
-      - run: npm build
-      - run: |
-          git commit -am "Release ${{ inputs.tag }}"
-          git push
-          gh release create ${{ inputs.tag }} --generate-notes
+      - run: npm install
+      - run: npm run build
+      - run: git config user.name github-actions
+      - run: git config user.email github-actions@github.com
+      - run: git commit -am "Release ${{ inputs.tag }}"
+      - run: git push
+      - run: gh release create ${{ inputs.tag }} --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

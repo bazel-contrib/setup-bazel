@@ -20,10 +20,14 @@ jobs:
         with:
           cache: npm
           node-version-file: package.json
+      - run: |
+          sed -ri 's/"version": ".+"/"version": "${{ inputs.tag }}"/' package.json
+          sed -ri 's/setup-bazel@.+$/setup-bazel@${{ inputs.tag }}/g' README.md
       - run: npm install
       - run: npm run build
-      - run: git config user.name github-actions
-      - run: git config user.email github-actions@github.com
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
       - run: git commit -am "Release ${{ inputs.tag }}"
       - run: git push
       - run: gh release create ${{ inputs.tag }} --generate-notes

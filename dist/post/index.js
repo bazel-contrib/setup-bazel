@@ -93931,7 +93931,7 @@ const falseTag = {
     identify: value => value === false,
     default: true,
     tag: 'tag:yaml.org,2002:bool',
-    test: /^(?:N|n|[Nn]o|NO|[Ff]alse|FALSE|[Oo]ff|OFF)$/i,
+    test: /^(?:N|n|[Nn]o|NO|[Ff]alse|FALSE|[Oo]ff|OFF)$/,
     resolve: () => new Scalar.Scalar(false),
     stringify: boolStringify
 };
@@ -96009,9 +96009,9 @@ async function saveCache(cacheConfig) {
       { followSymbolicLinks: false }
     )
     const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
-    console.log(`Attempting to save ${paths} cache to ${key}`)
+    core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
-    console.log('Successfully saved cache')
+    core.info('Successfully saved cache')
   } catch (error) {
     core.warning(error.stack)
   } finally {

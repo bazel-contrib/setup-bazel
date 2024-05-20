@@ -17,8 +17,8 @@ async function run() {
 
 async function setupBazel() {
   core.startGroup('Configure Bazel')
-  console.log('Configuration:')
-  console.log(JSON.stringify(config, null, 2))
+  core.info('Configuration:')
+  core.info(JSON.stringify(config, null, 2))
 
   await setupBazelrc()
   core.endGroup()
@@ -36,18 +36,19 @@ async function setupBazelisk() {
   }
 
   core.startGroup('Setup Bazelisk')
-  const toolPath = tc.find('bazelisk', config.bazeliskVersion)
+  let toolPath = tc.find('bazelisk', config.bazeliskVersion)
   if (toolPath) {
-    console.log(`Found in cache @ ${toolPath}`)
+    core.debug(`Found in cache @ ${toolPath}`)
   } else {
-    await downloadBazelisk()
+    toolPath = await downloadBazelisk()
   }
+  core.addPath(toolPath)
   core.endGroup()
 }
 
 async function downloadBazelisk() {
   const version = config.bazeliskVersion
-  console.log(`Attempting to download ${version}`)
+  core.debug(`Attempting to download ${version}`)
 
   // Possible values are 'arm', 'arm64', 'ia32', 'mips', 'mipsel', 'ppc', 'ppc64', 's390', 's390x' and 'x64'.
   // Bazelisk filenames use 'amd64' and 'arm64'.
@@ -88,15 +89,15 @@ async function downloadBazelisk() {
   }
 
   const url = asset.browser_download_url
-  console.log(`Downloading from ${url}`)
+  core.debug(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
-  console.log('Adding to the cache...');
+  core.debug('Adding to the cache...');
   fs.chmodSync(downloadPath, '755');
   const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
-  console.log(`Successfully cached bazelisk to ${cachePath}`)
+  core.debug(`Successfully cached bazelisk to ${cachePath}`)
 
-  core.addPath(cachePath)
+  return cachePath
 }
 
 async function setupBazelrc() {
@@ -152,7 +153,7 @@ async function restoreCache(cacheConfig) {
     const restoreKey = `${config.baseCacheKey}-${name}-`
     const key = `${restoreKey}${hash}`
 
-    console.log(`Attempting to restore ${name} cache from ${key}`)
+    core.debug(`Attempting to restore ${name} cache from ${key}`)
 
     const restoredKey = await cache.restoreCache(
       paths, key, [restoreKey],
@@ -160,13 +161,13 @@ async function restoreCache(cacheConfig) {
     )
 
     if (restoredKey) {
-      console.log(`Successfully restored cache from ${restoredKey}`)
+      core.info(`Successfully restored cache from ${restoredKey}`)
 
       if (restoredKey === key) {
         core.saveState(`${name}-cache-hit`, 'true')
       }
     } else {
-      console.log(`Failed to restore ${name} cache`)
+      core.info(`Failed to restore ${name} cache`)
     }
 
     core.endGroup()

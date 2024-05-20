@@ -30,6 +30,8 @@ jobs:
           git config user.email github-actions@github.com
       - run: git commit -am "Release ${{ inputs.tag }}"
       - run: git push
+      - run: git tag -a ${{ inputs.tag }} -m "Release ${{ inputs.tag }}"
+      - run: git push --tags
       - run: gh release create ${{ inputs.tag }} --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

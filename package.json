@@ -7,7 +7,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post",
+    "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post && ncc build remote-cache-server.js -s -o dist/remote-cache-server",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Alex Rodionov <p0deje@gmail.com>",

@@ -151,4 +151,9 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
+  remoteCacheServer: {
+    enabled: true,
+    url: 'http://localhost:8080/cache',
+    logPath: `${os.tmpdir()}/remote-cache-server.log`,
+  }
 }

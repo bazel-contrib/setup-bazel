@@ -6,6 +6,8 @@ const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
+const { fork } = require('child_process')
+const path = require('path')
 
 async function run() {
   try {
@@ -28,6 +30,7 @@ async function setupBazel() {
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
+  await startRemoteCacheServer()
 }
 
 async function setupBazelisk() {
@@ -92,8 +95,8 @@ async function downloadBazelisk() {
   core.debug(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
-  core.debug('Adding to the cache...');
-  fs.chmodSync(downloadPath, '755');
+  core.debug('Adding to the cache...')
+  fs.chmodSync(downloadPath, '755')
   const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
   core.debug(`Successfully cached bazelisk to ${cachePath}`)
 
@@ -107,6 +110,7 @@ async function setupBazelrc() {
       `startup --output_base=${config.paths.bazelOutputBase}\n`
     )
     fs.appendFileSync(bazelrcPath, config.bazelrc.join("\n"))
+    fs.appendFileSync(bazelrcPath, `build --remote_cache=${config.remoteCacheServer.url}\n`)
   }
 }
 
@@ -174,4 +178,13 @@ async function restoreCache(cacheConfig) {
   }())
 }
 
-run()
+async function startRemoteCacheServer() {
+  const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
+  const serverProcess = fork(path.join(__dirname, 'dist', 'remote-cache-server', 'index.js'), [], {
+    detached: true,
+    stdio: ['ignore', log, log, 'ipc']
+  })
+  serverProcess.unref()
+  
+  core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
+}

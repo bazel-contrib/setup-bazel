@@ -5,7 +5,6 @@ const core = require('@actions/core')
 const glob = require('@actions/glob')
 const config = require('./config')
 const { getFolderSize } = require('./util')
-const { execSync } = require('child_process')
 
 async function run() {
   await stopRemoteCacheServer()
@@ -13,6 +12,8 @@ async function run() {
 }
 
 async function stopRemoteCacheServer() {
+  core.info(fs.readFileSync(config.remoteCacheServer.logPath, 'utf8'))
+
   const pid = core.getState('remote-cache-server-pid')
   if (pid) {
     try {

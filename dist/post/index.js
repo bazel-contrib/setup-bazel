@@ -95940,7 +95940,6 @@ const core = __nccwpck_require__(2186)
 const glob = __nccwpck_require__(8090)
 const config = __nccwpck_require__(5532)
 const { getFolderSize } = __nccwpck_require__(4962)
-const { execSync } = __nccwpck_require__(2081)
 
 async function run() {
   await stopRemoteCacheServer()
@@ -95948,6 +95947,8 @@ async function run() {
 }
 
 async function stopRemoteCacheServer() {
+  core.info(fs.readFileSync(config.remoteCacheServer.logPath, 'utf8'))
+
   const pid = core.getState('remote-cache-server-pid')
   if (pid) {
     try {

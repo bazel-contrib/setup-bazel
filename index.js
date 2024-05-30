@@ -181,11 +181,10 @@ async function restoreCache(cacheConfig) {
 async function startRemoteCacheServer() {
   core.startGroup("Remote cache server")
 
-  core.debug(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
+  core.info(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
   const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
   const serverProcess = fork(path.join(__dirname, 'remote-cache-server.js'), [], {
-    detached: true,
-    stdio: ['ignore', log, log, 'ipc']
+    stdio: ['ignore', log, log]
   })
   serverProcess.unref()
 

@@ -189,7 +189,7 @@ async function startRemoteCacheServer() {
   })
   serverProcess.unref()
 
-  core.info(`Started remote cache server (${serverProcess.pid}`)
+  core.info(`Started remote cache server (${serverProcess.pid})`)
   core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
   core.endGroup()
 }

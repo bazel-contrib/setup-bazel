@@ -157,6 +157,11 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
+  remoteCacheServer: {
+    enabled: true,
+    url: 'http://localhost:8080/cache',
+    logPath: `${os.tmpdir()}/remote-cache-server.log`,
+  }
 }
 
 
@@ -96867,6 +96872,8 @@ const github = __nccwpck_require__(5438)
 const glob = __nccwpck_require__(8090)
 const tc = __nccwpck_require__(7784)
 const config = __nccwpck_require__(5532)
+const { fork } = __nccwpck_require__(2081)
+const path = __nccwpck_require__(1017)
 
 async function run() {
   try {
@@ -96889,6 +96896,7 @@ async function setupBazel() {
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
+  await startRemoteCacheServer()
 }
 
 async function setupBazelisk() {
@@ -96953,8 +96961,8 @@ async function downloadBazelisk() {
   core.debug(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
-  core.debug('Adding to the cache...');
-  fs.chmodSync(downloadPath, '755');
+  core.debug('Adding to the cache...')
+  fs.chmodSync(downloadPath, '755')
   const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
   core.debug(`Successfully cached bazelisk to ${cachePath}`)
 
@@ -96968,6 +96976,7 @@ async function setupBazelrc() {
       `startup --output_base=${config.paths.bazelOutputBase}\n`
     )
     fs.appendFileSync(bazelrcPath, config.bazelrc.join("\n"))
+    fs.appendFileSync(bazelrcPath, `build --remote_cache=${config.remoteCacheServer.url}\n`)
   }
 }
 
@@ -97035,7 +97044,21 @@ async function restoreCache(cacheConfig) {
   }())
 }
 
-run()
+async function startRemoteCacheServer() {
+  core.startGroup("Remote cache server")
+  
+  core.debug(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
+  const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
+  const serverProcess = fork(path.join(__dirname, 'dist', 'remote-cache-server', 'index.js'), [], {
+    detached: true,
+    stdio: ['ignore', log, log, 'ipc']
+  })
+  serverProcess.unref()
+
+  core.info(`Started remote cache server (${serverProcess.pid}`)  
+  core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
+  core.endGroup()
+}
 
 })();
 

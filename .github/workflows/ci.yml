@@ -25,7 +25,7 @@ jobs:
         with:
           repository: bazelbuild/examples
           path: examples
-      - run: bazel build ...
+      - run: bazel build :ProjectRunner
         working-directory: examples/java-tutorial
       - if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

@@ -21,7 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-      - run: ps aux
       - uses: actions/checkout@v4
         with:
           repository: bazelbuild/examples

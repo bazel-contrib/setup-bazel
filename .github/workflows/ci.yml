@@ -20,11 +20,11 @@ jobs:
           - windows
     steps:
       - uses: actions/checkout@v4
+      - uses: ./
+      - uses: actions/checkout@v4
         with:
           repository: bazelbuild/examples
           path: examples
-      - uses: actions/checkout@v4
-      - uses: ./
       - run: bazel build ...
         working-directory: examples/java-tutorial
       - if: failure() && runner.debug == '1'

@@ -95961,6 +95961,7 @@ async function stopRemoteCacheServer() {
     return
   }
 
+  core.startGroup("Remote cache server")
   const pid = core.getState('remote-cache-server-pid')
   if (pid) {
     try {
@@ -95976,6 +95977,7 @@ async function stopRemoteCacheServer() {
     const logContent = fs.readFileSync(logPath, 'utf8')
     core.debug(`Remote cache server log:\n${logContent}`)
   }
+  core.endGroup()
 }
 
 async function saveCaches() {

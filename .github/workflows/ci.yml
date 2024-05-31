@@ -20,21 +20,33 @@ jobs:
           - ubuntu
           - windows
     steps:
-      - run: rm $(which bazel)
-        if: matrix.os != 'windows'
-      - run: Remove-Item -Path (Get-Command bazel.exe).Source
-        if: matrix.os == 'windows'
-      - uses: actions/checkout@v4
+      - name: Checkout example
+        uses: actions/checkout@v4
         with:
           repository: bazelbuild/examples
           sparse-checkout: java-maven
           sparse-checkout-cone-mode: false
       - run: shopt -s dotglob && mv java-maven/* . && rmdir java-maven && ls -la
         if: matrix.os != 'windows'
-      - uses: actions/checkout@v4
+      - name: Checkout setup-bazel
+        uses: actions/checkout@v4
         with:
           path: setup-bazel
-      - uses: ./setup-bazel/
+      - name: Prepare environment (POSIX)
+        if: matrix.os != 'windows'
+        run: |
+          rm $(which bazel)
+          shopt -s dotglob
+          mv java-maven/* .
+          rmdir java-maven
+      - name: Prepare environment (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          Remove-Item -Path (Get-Command bazel.exe).Source
+          Get-ChildItem -Path java-maven -Recurse -File | Move-Item -Destination .
+          Remove-Item -Path java-maven
+      - name: Setup Bazel
+        uses: ./setup-bazel/
         with:
           bazelisk-cache: true
           bazelisk-version: 1.x
@@ -42,5 +54,6 @@ jobs:
           repository-cache: true
       - run: bazel build ...
       - run: bazel test ...
-      - if: failure() && runner.debug == '1'
+      - name: Start SSH session
+        if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

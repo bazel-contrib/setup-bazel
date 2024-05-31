@@ -29,11 +29,11 @@ jobs:
           repository: bazelbuild/examples
           sparse-checkout: java-maven
           sparse-checkout-cone-mode: false
-      - run: mv java-maven/* . && rmdir java-maven
+      - run: shopt -s dotglob && mv java-maven/* . && rmdir java-maven && ls -la
+        if: matrix.os != 'windows'
       - uses: actions/checkout@v4
         with:
           path: setup-bazel
-      - run: ls
       - uses: ./setup-bazel/
         with:
           bazelisk-cache: true
@@ -41,8 +41,6 @@ jobs:
           remote-cache: true
           repository-cache: true
       - run: bazel build ...
-        working-directory: java-maven
       - run: bazel test ...
-        working-directory: java-maven
       - if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

@@ -31,15 +31,17 @@ jobs:
           sparse-checkout-cone-mode: false
       - uses: actions/checkout@v4
         with:
-          path: setup-bazel
+          path: java-maven/setup-bazel
       - run: ls -l
-      - uses: ./setup-bazel/
+      - uses: ./java-maven/setup-bazel/
         with:
           bazelisk-cache: true
           bazelisk-version: 1.x
           remote-cache: true
           repository-cache: true
       - run: bazel build ...
+        working-directory: java-maven
       - run: bazel test ...
+        working-directory: java-maven
       - if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

@@ -25,17 +25,19 @@ jobs:
       - run: Remove-Item -Path (Get-Command bazel.exe).Source
         if: matrix.os == 'windows'
       - uses: actions/checkout@v4
-      - uses: ./
+        with:
+          repository: bazelbuild/examples
+          sparse-checkout: java-maven
+      - uses: actions/checkout@v4
+        path: setup-bazel
+      - run: ls -l
+      - uses: ./setup-bazel/
         with:
           bazelisk-cache: true
           bazelisk-version: 1.x
           remote-cache: true
           repository-cache: true
-      - uses: actions/checkout@v4
-        with:
-          repository: bazelbuild/examples
-          path: examples
-      - run: bazel build --announce_rc :ProjectRunner
-        working-directory: examples/java-tutorial
+      - run: bazel build ...
+      - run: bazel test ...
       - if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

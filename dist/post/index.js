@@ -95965,7 +95965,7 @@ async function stopRemoteCacheServer() {
   if (pid) {
     try {
       process.kill(pid, 'SIGTERM')
-      core.debug(`Stopped remote cache server with PID: ${pid}`)
+      core.info(`Stopped remote cache server with PID: ${pid}`)
     } catch (error) {
       core.error(`Failed to stop remote cache server with PID: ${pid}. Error: ${error}`)
     }

@@ -26,8 +26,6 @@ jobs:
           repository: bazelbuild/examples
           sparse-checkout: java-maven
           sparse-checkout-cone-mode: false
-      - run: shopt -s dotglob && mv java-maven/* . && rmdir java-maven && ls -la
-        if: matrix.os != 'windows'
       - name: Checkout setup-bazel
         uses: actions/checkout@v4
         with:

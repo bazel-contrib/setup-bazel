@@ -6,7 +6,7 @@ const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
-const { fork } = require('child_process')
+const { spawn } = require('child_process')
 const path = require('path')
 
 async function run() {
@@ -183,14 +183,16 @@ async function startRemoteCacheServer() {
 
   core.info(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
   const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
-  const serverProcess = fork(path.join(__dirname, '..', 'remote-cache-server', 'index.js'), [], {
+  const remoteCacheServer = path.join(__dirname, '..', 'remote-cache-server', 'index.js')
+  const serverProcess = spawn(process.execPath, [remoteCacheServer], {
     detached: true,
-    stdio: ['ignore', log, log, 'ipc']
+    stdio: ['ignore', log, log]
   })
-  serverProcess.unref()
 
   core.info(`Started remote cache server (${serverProcess.pid})`)
   core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
+
+  serverProcess.unref()
   core.endGroup()
 }
 

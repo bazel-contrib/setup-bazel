@@ -96872,7 +96872,7 @@ const github = __nccwpck_require__(5438)
 const glob = __nccwpck_require__(8090)
 const tc = __nccwpck_require__(7784)
 const config = __nccwpck_require__(5532)
-const { fork } = __nccwpck_require__(2081)
+const { spawn } = __nccwpck_require__(2081)
 const path = __nccwpck_require__(1017)
 
 async function run() {
@@ -97049,14 +97049,16 @@ async function startRemoteCacheServer() {
 
   core.info(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
   const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
-  const serverProcess = fork(path.join(__dirname, '..', 'remote-cache-server', 'index.js'), [], {
+  const remoteCacheServer = path.join(__dirname, '..', 'remote-cache-server', 'index.js')
+  const serverProcess = spawn(process.execPath, [remoteCacheServer], {
     detached: true,
-    stdio: ['ignore', log, log, 'ipc']
+    stdio: ['ignore', log, log]
   })
-  serverProcess.unref()
 
   core.info(`Started remote cache server (${serverProcess.pid})`)
   core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
+
+  serverProcess.unref()
   core.endGroup()
 }
 

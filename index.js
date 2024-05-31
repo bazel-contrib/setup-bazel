@@ -97,7 +97,15 @@ async function downloadBazelisk() {
 
   core.debug('Adding to the cache...')
   fs.chmodSync(downloadPath, '755')
-  const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
+
+  let bazelBinName = 'bazel'
+  let bazeliskBinName = 'bazelisk'
+  if (platform == 'windows') {
+    bazelBinName = `${bazelBinName}.exe`
+    bazeliskBinName = `${bazelBinName}.exe`
+  }
+
+  const cachePath = await tc.cacheFile(downloadPath, bazelBinName, bazeliskBinName, version)
   core.info(`Successfully cached bazelisk to ${cachePath}`)
 
   return cachePath
@@ -182,7 +190,7 @@ async function startRemoteCacheServer() {
     return
   }
 
-  core.startGroup("Remote cache server")
+  core.startGroup("Start remote cache server")
   core.info(`Remote cache server log file path: ${config.remoteCache.logPath}`)
 
   const log = fs.openSync(config.remoteCache.logPath, 'a')
@@ -192,7 +200,7 @@ async function startRemoteCacheServer() {
     stdio: ['ignore', log, log]
   })
 
-  core.info(`Started remote cache server (${serverProcess.pid})`)
+  core.info(`Started remote cache server with PID: ${serverProcess.pid}`)
   core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
 
   serverProcess.unref()

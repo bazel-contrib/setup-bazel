@@ -95961,7 +95961,7 @@ async function stopRemoteCacheServer() {
     return
   }
 
-  core.startGroup("Remote cache server")
+  core.startGroup("Stop remote cache server")
   const pid = core.getState('remote-cache-server-pid')
   if (pid) {
     try {

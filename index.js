@@ -110,7 +110,6 @@ async function setupBazelrc() {
       `startup --output_base=${config.paths.bazelOutputBase}\n`
     )
     fs.appendFileSync(bazelrcPath, config.bazelrc.join("\n"))
-    fs.appendFileSync(bazelrcPath, `build --remote_cache=${config.remoteCacheServer.url}\n`)
   }
 }
 
@@ -179,9 +178,13 @@ async function restoreCache(cacheConfig) {
 }
 
 async function startRemoteCacheServer() {
-  core.startGroup("Remote cache server")
+  if (!config.remoteCacheServer.enabled) {
+    return
+  }
 
+  core.startGroup("Remote cache server")
   core.info(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
+
   const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
   const remoteCacheServer = path.join(__dirname, '..', 'remote-cache-server', 'index.js')
   const serverProcess = spawn(process.execPath, [remoteCacheServer], {

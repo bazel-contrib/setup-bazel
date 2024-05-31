@@ -29,6 +29,10 @@ inputs:
     description: Google Cloud account key for remote cache
     required: false
     default: ""
+  remote-cache:
+    description: Use built-in remote cache server
+    required: false
+    default: "false"
   repository-cache:
     description: Cache repositories based on MODULE.bazel/WORKSPACE
     required: false

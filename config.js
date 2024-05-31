@@ -46,6 +46,15 @@ if (diskCacheEnabled) {
   }
 }
 
+const remoteCacheServerUrl = 'http://localhost:9889/cache'
+const remoteCacheEnabled = core.getBooleanInput('remote-cache')
+if (remoteCacheEnabled) {
+  bazelrc.push(`build --remote_cache=${remoteCacheServerUrl}\n`)
+  if (diskCacheEnabled) {
+    core.error('Disk cache and remote cache cannot be enabled at the same time')
+  }
+}
+
 const repositoryCacheConfig = core.getInput('repository-cache')
 const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
 let repositoryCacheFiles = [
@@ -151,9 +160,9 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
-  remoteCacheServer: {
-    enabled: true,
-    url: 'http://localhost:8080/cache',
+  remoteCache: {
+    enabled: remoteCacheEnabled,
     logPath: `${os.tmpdir()}/remote-cache-server.log`,
+    url: remoteCacheServerUrl,
   }
 }

@@ -12,7 +12,9 @@ async function run() {
 }
 
 async function stopRemoteCacheServer() {
-  core.info(fs.readFileSync(config.remoteCacheServer.logPath, 'utf8'))
+  if (!config.remoteCacheServer.enabled) {
+    return
+  }
 
   const pid = core.getState('remote-cache-server-pid')
   if (pid) {

@@ -52,6 +52,15 @@ if (diskCacheEnabled) {
   }
 }
 
+const remoteCacheServerUrl = 'http://localhost:9889/cache'
+const remoteCacheEnabled = core.getBooleanInput('remote-cache')
+if (remoteCacheEnabled) {
+  bazelrc.push(`build --remote_cache=${remoteCacheServerUrl}\n`)
+  if (diskCacheEnabled) {
+    core.error('Disk cache and remote cache cannot be enabled at the same time')
+  }
+}
+
 const repositoryCacheConfig = core.getInput('repository-cache')
 const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
 let repositoryCacheFiles = [
@@ -157,10 +166,10 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
-  remoteCacheServer: {
-    enabled: true,
-    url: 'http://localhost:8080/cache',
+  remoteCache: {
+    enabled: remoteCacheEnabled,
     logPath: `${os.tmpdir()}/remote-cache-server.log`,
+    url: remoteCacheServerUrl,
   }
 }
 
@@ -96976,7 +96985,6 @@ async function setupBazelrc() {
       `startup --output_base=${config.paths.bazelOutputBase}\n`
     )
     fs.appendFileSync(bazelrcPath, config.bazelrc.join("\n"))
-    fs.appendFileSync(bazelrcPath, `build --remote_cache=${config.remoteCacheServer.url}\n`)
   }
 }
 
@@ -97045,9 +97053,13 @@ async function restoreCache(cacheConfig) {
 }
 
 async function startRemoteCacheServer() {
-  core.startGroup("Remote cache server")
+  if (!config.remoteCacheServer.enabled) {
+    return
+  }
 
+  core.startGroup("Remote cache server")
   core.info(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
+
   const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
   const remoteCacheServer = path.join(__dirname, '..', 'remote-cache-server', 'index.js')
   const serverProcess = spawn(process.execPath, [remoteCacheServer], {

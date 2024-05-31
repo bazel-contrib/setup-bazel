@@ -97053,7 +97053,7 @@ async function restoreCache(cacheConfig) {
 }
 
 async function startRemoteCacheServer() {
-  if (!config.remoteCacheServer.enabled) {
+  if (!config.remoteCache.enabled) {
     return
   }
 

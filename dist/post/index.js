@@ -95956,7 +95956,7 @@ async function run() {
 }
 
 async function stopRemoteCacheServer() {
-  if (!config.remoteCacheServer.enabled) {
+  if (!config.remoteCache.enabled) {
     return
   }
 

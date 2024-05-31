@@ -183,9 +183,9 @@ async function startRemoteCacheServer() {
   }
 
   core.startGroup("Remote cache server")
-  core.info(`Remote cache server log file path: ${config.remoteCacheServer.logPath}`)
+  core.info(`Remote cache server log file path: ${config.remoteCache.logPath}`)
 
-  const log = fs.openSync(config.remoteCacheServer.logPath, 'a')
+  const log = fs.openSync(config.remoteCache.logPath, 'a')
   const remoteCacheServer = path.join(__dirname, '..', 'remote-cache-server', 'index.js')
   const serverProcess = spawn(process.execPath, [remoteCacheServer], {
     detached: true,

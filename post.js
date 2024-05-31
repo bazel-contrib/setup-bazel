@@ -26,7 +26,7 @@ async function stopRemoteCacheServer() {
     }
   }
 
-  const logPath = config.remoteCacheServer.logPath
+  const logPath = config.remoteCache.logPath
   if (fs.existsSync(logPath)) {
     const logContent = fs.readFileSync(logPath, 'utf8')
     core.debug(`Remote cache server log:\n${logContent}`)

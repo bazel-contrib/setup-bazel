@@ -29,7 +29,8 @@ jobs:
           repository: bazelbuild/examples
           sparse-checkout: java-maven
       - uses: actions/checkout@v4
-        path: setup-bazel
+        with:
+          path: setup-bazel
       - run: ls -l
       - uses: ./setup-bazel/
         with:

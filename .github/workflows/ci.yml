@@ -28,6 +28,7 @@ jobs:
         with:
           repository: bazelbuild/examples
           sparse-checkout: java-maven
+          sparse-checkout-cone-mode: false
       - uses: actions/checkout@v4
         with:
           path: setup-bazel

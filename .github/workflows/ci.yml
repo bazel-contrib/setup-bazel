@@ -13,6 +13,7 @@ jobs:
   setup-bazel:
     runs-on: ${{ matrix.os }}-latest
     strategy:
+      fail-fast: false
       matrix:
         os:
           - macos
@@ -20,6 +21,9 @@ jobs:
           - windows
     steps:
       - run: rm $(which bazel)
+        if: matrix.os != 'windows'
+      - run: Remove-Item -Path (Get-Command bazel.exe).Source
+        if: matrix.os == 'windows'
       - uses: actions/checkout@v4
       - uses: ./
         with:

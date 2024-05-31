@@ -51,6 +51,7 @@ jobs:
         with:
           bazelisk-cache: true
           bazelisk-version: 1.x
+          bazelrc: test --test_output=errors
           remote-cache: true
           repository-cache: true
 

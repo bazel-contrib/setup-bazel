@@ -45,7 +45,6 @@ jobs:
         run: |
           Remove-Item -Path (Get-Command bazel.exe).Source
           Get-ChildItem -Path java-maven -Recurse -File | Move-Item -Destination .
-          Remove-Item -Path java-maven
 
       - name: Setup Bazel
         uses: ./setup-bazel/

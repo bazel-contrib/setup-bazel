@@ -29,11 +29,12 @@ jobs:
           repository: bazelbuild/examples
           sparse-checkout: java-maven
           sparse-checkout-cone-mode: false
+      - run: mv java-maven/* .
       - uses: actions/checkout@v4
         with:
-          path: java-maven/setup-bazel
+          path: setup-bazel
       - run: ls -l
-      - uses: ./java-maven/setup-bazel/
+      - uses: ./setup-bazel/
         with:
           bazelisk-cache: true
           bazelisk-version: 1.x

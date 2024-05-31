@@ -96917,7 +96917,7 @@ async function setupBazelisk() {
   core.startGroup('Setup Bazelisk')
   let toolPath = tc.find('bazelisk', config.bazeliskVersion)
   if (toolPath) {
-    core.debug(`Found in cache @ ${toolPath}`)
+    core.info(`Found in cache @ ${toolPath}`)
   } else {
     toolPath = await downloadBazelisk()
   }
@@ -96968,13 +96968,13 @@ async function downloadBazelisk() {
   }
 
   const url = asset.browser_download_url
-  core.debug(`Downloading from ${url}`)
+  core.info(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
   core.debug('Adding to the cache...')
   fs.chmodSync(downloadPath, '755')
   const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
-  core.debug(`Successfully cached bazelisk to ${cachePath}`)
+  core.info(`Successfully cached bazelisk to ${cachePath}`)
 
   return cachePath
 }

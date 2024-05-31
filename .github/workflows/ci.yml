@@ -19,10 +19,14 @@ jobs:
           - ubuntu
           - windows
     steps:
+      - run: rm $(which bazel)
       - uses: actions/checkout@v4
       - uses: ./
         with:
+          bazelisk-cache: true
+          bazelisk-version: 1.x
           remote-cache: true
+          repository-cache: true
       - uses: actions/checkout@v4
         with:
           repository: bazelbuild/examples

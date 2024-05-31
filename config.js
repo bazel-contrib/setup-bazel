@@ -46,10 +46,11 @@ if (diskCacheEnabled) {
   }
 }
 
+const remoteCacheLogPath = core.toPosixPath(`${os.tmpdir()}/remote-cache-server.log`)
 const remoteCacheServerUrl = 'http://localhost:9889/cache'
 const remoteCacheEnabled = core.getBooleanInput('remote-cache')
 if (remoteCacheEnabled) {
-  bazelrc.push(`build --remote_cache=${remoteCacheServerUrl}\n`)
+  bazelrc.push(`build --remote_cache=${remoteCacheServerUrl}`)
   if (diskCacheEnabled) {
     core.error('Disk cache and remote cache cannot be enabled at the same time')
   }
@@ -162,7 +163,7 @@ module.exports = {
   },
   remoteCache: {
     enabled: remoteCacheEnabled,
-    logPath: `${os.tmpdir()}/remote-cache-server.log`,
+    logPath: remoteCacheLogPath,
     url: remoteCacheServerUrl,
   }
 }

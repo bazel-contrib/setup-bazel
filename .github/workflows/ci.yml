@@ -44,7 +44,7 @@ jobs:
         if: matrix.os == 'windows'
         run: |
           Remove-Item -Path (Get-Command bazel.exe).Source
-          Get-ChildItem -Path  -Recurse -File | Move-Item -Destination .
+          Get-ChildItem -Path frontend -Recurse -File | Move-Item -Destination .
           Remove-Item -Path frontend -Recurse -Force
 
       - name: Setup Bazel

@@ -39,7 +39,6 @@ jobs:
           shopt -s dotglob
           mv java-maven/* .
           rmdir java-maven
-          ln -s ~/.docker/run/docker.sock /var/run/docker.sock
 
       - name: Prepare environment (macOS)
         if: matrix.os == 'macos'

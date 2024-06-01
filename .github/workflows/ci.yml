@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: bazelbuild/examples
-          sparse-checkout: java-maven
+          sparse-checkout: frontend
           sparse-checkout-cone-mode: false
 
       - name: Checkout setup-bazel
@@ -37,14 +37,15 @@ jobs:
         run: |
           rm $(which bazel)
           shopt -s dotglob
-          mv java-maven/* .
-          rmdir java-maven
+          mv frontend/* .
+          rmdir frontend
 
       - name: Prepare environment (Windows)
         if: matrix.os == 'windows'
         run: |
           Remove-Item -Path (Get-Command bazel.exe).Source
-          Get-ChildItem -Path java-maven -Recurse -File | Move-Item -Destination .
+          Get-ChildItem -Path  -Recurse -File | Move-Item -Destination .
+          Remove-Item -Path frontend -Recurse -Force
 
       - name: Setup Bazel
         uses: ./setup-bazel/

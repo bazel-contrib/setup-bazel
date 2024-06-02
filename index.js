@@ -6,6 +6,8 @@ const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
+const { spawn } = require('child_process')
+const path = require('path')
 
 async function run() {
   try {
@@ -28,6 +30,7 @@ async function setupBazel() {
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
+  await startRemoteCacheServer()
 }
 
 async function setupBazelisk() {
@@ -38,7 +41,7 @@ async function setupBazelisk() {
   core.startGroup('Setup Bazelisk')
   let toolPath = tc.find('bazelisk', config.bazeliskVersion)
   if (toolPath) {
-    core.debug(`Found in cache @ ${toolPath}`)
+    core.info(`Found in cache @ ${toolPath}`)
   } else {
     toolPath = await downloadBazelisk()
   }
@@ -89,13 +92,21 @@ async function downloadBazelisk() {
   }
 
   const url = asset.browser_download_url
-  core.debug(`Downloading from ${url}`)
+  core.info(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
-  core.debug('Adding to the cache...');
-  fs.chmodSync(downloadPath, '755');
-  const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
-  core.debug(`Successfully cached bazelisk to ${cachePath}`)
+  core.debug('Adding to the cache...')
+  fs.chmodSync(downloadPath, '755')
+
+  let bazelBinName = 'bazel'
+  let bazeliskBinName = 'bazelisk'
+  if (platform == 'windows') {
+    bazelBinName = `${bazelBinName}.exe`
+    bazeliskBinName = `${bazelBinName}.exe`
+  }
+
+  const cachePath = await tc.cacheFile(downloadPath, bazelBinName, bazeliskBinName, version)
+  core.info(`Successfully cached bazelisk to ${cachePath}`)
 
   return cachePath
 }
@@ -172,6 +183,28 @@ async function restoreCache(cacheConfig) {
 
     core.endGroup()
   }())
+}
+
+async function startRemoteCacheServer() {
+  if (!config.remoteCache.enabled) {
+    return
+  }
+
+  core.startGroup("Start remote cache server")
+  core.info(`Remote cache server log file path: ${config.remoteCache.logPath}`)
+
+  const log = fs.openSync(config.remoteCache.logPath, 'a')
+  const remoteCacheServer = path.join(__dirname, '..', 'remote-cache-server', 'index.js')
+  const serverProcess = spawn(process.execPath, [remoteCacheServer], {
+    detached: true,
+    stdio: ['ignore', log, log]
+  })
+
+  core.info(`Started remote cache server with PID: ${serverProcess.pid}`)
+  core.saveState('remote-cache-server-pid', serverProcess.pid.toString())
+
+  serverProcess.unref()
+  core.endGroup()
 }
 
 run()

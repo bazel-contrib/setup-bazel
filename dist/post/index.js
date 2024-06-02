@@ -52,6 +52,16 @@ if (diskCacheEnabled) {
   }
 }
 
+const remoteCacheLogPath = core.toPosixPath(`${os.tmpdir()}/remote-cache-server.log`)
+const remoteCacheServerUrl = 'http://localhost:9889/cache'
+const remoteCacheEnabled = core.getBooleanInput('remote-cache')
+if (remoteCacheEnabled) {
+  bazelrc.push(`build --remote_cache=${remoteCacheServerUrl}`)
+  if (diskCacheEnabled) {
+    core.error('Disk cache and remote cache cannot be enabled at the same time')
+  }
+}
+
 const repositoryCacheConfig = core.getInput('repository-cache')
 const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
 let repositoryCacheFiles = [
@@ -157,6 +167,11 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
+  remoteCache: {
+    enabled: remoteCacheEnabled,
+    logPath: remoteCacheLogPath,
+    url: remoteCacheServerUrl,
+  }
 }
 
 
@@ -95937,7 +95952,32 @@ const config = __nccwpck_require__(5532)
 const { getFolderSize } = __nccwpck_require__(4962)
 
 async function run() {
+  await stopRemoteCacheServer()
   await saveCaches()
+}
+
+async function stopRemoteCacheServer() {
+  if (!config.remoteCache.enabled) {
+    return
+  }
+
+  core.startGroup("Stop remote cache server")
+  const pid = core.getState('remote-cache-server-pid')
+  if (pid) {
+    try {
+      process.kill(pid, 'SIGTERM')
+      core.info(`Stopped remote cache server with PID: ${pid}`)
+    } catch (error) {
+      core.error(`Failed to stop remote cache server with PID: ${pid}. Error: ${error}`)
+    }
+  }
+
+  const logPath = config.remoteCache.logPath
+  if (fs.existsSync(logPath)) {
+    const logContent = fs.readFileSync(logPath, 'utf8')
+    core.debug(`Remote cache server log:\n${logContent}`)
+  }
+  core.endGroup()
 }
 
 async function saveCaches() {

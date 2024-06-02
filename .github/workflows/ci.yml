@@ -13,13 +13,52 @@ jobs:
   setup-bazel:
     runs-on: ${{ matrix.os }}-latest
     strategy:
+      fail-fast: false
       matrix:
         os:
           - macos
           - ubuntu
           - windows
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-      - if: failure() && runner.debug == '1'
+      - name: Checkout example
+        uses: actions/checkout@v4
+        with:
+          repository: bazelbuild/examples
+          sparse-checkout: frontend
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout setup-bazel
+        uses: actions/checkout@v4
+        with:
+          path: setup-bazel
+
+      - name: Prepare environment (POSIX)
+        if: matrix.os != 'windows'
+        run: |
+          rm $(which bazel)
+          shopt -s dotglob
+          mv frontend/* .
+          rmdir frontend
+
+      - name: Prepare environment (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          Remove-Item -Path (Get-Command bazel.exe).Source
+          Get-ChildItem -Path frontend -Recurse -File | Move-Item -Destination .
+          Remove-Item -Path frontend -Recurse -Force
+
+      - name: Setup Bazel
+        uses: ./setup-bazel/
+        with:
+          bazelisk-cache: true
+          bazelisk-version: 1.x
+          bazelrc: test --test_output=errors
+          remote-cache: true
+          repository-cache: true
+
+      - run: bazel build ...
+      - run: bazel test ...
+
+      - name: Start SSH session
+        if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

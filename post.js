@@ -7,7 +7,32 @@ const config = require('./config')
 const { getFolderSize } = require('./util')
 
 async function run() {
+  await stopRemoteCacheServer()
   await saveCaches()
+}
+
+async function stopRemoteCacheServer() {
+  if (!config.remoteCache.enabled) {
+    return
+  }
+
+  core.startGroup("Stop remote cache server")
+  const pid = core.getState('remote-cache-server-pid')
+  if (pid) {
+    try {
+      process.kill(pid, 'SIGTERM')
+      core.info(`Stopped remote cache server with PID: ${pid}`)
+    } catch (error) {
+      core.error(`Failed to stop remote cache server with PID: ${pid}. Error: ${error}`)
+    }
+  }
+
+  const logPath = config.remoteCache.logPath
+  if (fs.existsSync(logPath)) {
+    const logContent = fs.readFileSync(logPath, 'utf8')
+    core.debug(`Remote cache server log:\n${logContent}`)
+  }
+  core.endGroup()
 }
 
 async function saveCaches() {

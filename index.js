@@ -70,7 +70,9 @@ async function downloadBazelisk() {
   }
 
   const token = core.getInput('token')
-  const octokit = github.getOctokit(token)
+  const octokit = github.getOctokit(token, {
+    baseUrl: 'https://api.github.com'
+  })
   const { data: releases } = await octokit.rest.repos.listReleases({
     owner: 'bazelbuild',
     repo: 'bazelisk'

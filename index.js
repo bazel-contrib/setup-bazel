@@ -99,9 +99,14 @@ async function downloadBazelisk() {
   core.debug(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
+  let binaryName = 'bazel'
+  if (platform == 'windows') {
+    binaryName = `${binaryName}.exe`
+  }
+
   core.debug('Adding to the cache...');
   fs.chmodSync(downloadPath, '755');
-  const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
+  const cachePath = await tc.cacheFile(downloadPath, binaryName, 'bazelisk', version)
   core.debug(`Successfully cached bazelisk to ${cachePath}`)
 
   return cachePath

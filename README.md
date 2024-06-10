@@ -202,6 +202,10 @@ Default `false`.
   ```
 </details>
 
+## Note for Windows ARM64 Users
+
+When using this action on Windows ARM64 architecture, the setup will temporarily use the x64 version of Bazelisk due to the current unavailability of a native ARM64 binary. This is a temporary workaround until an ARM64 binary becomes available. For more details, see [bazelbuild/bazelisk#572](https://github.com/bazelbuild/bazelisk/issues/572).
+
 ## Migrating from [`bazelbuild/setup-bazelisk`][6]
 
 You can simply replace `bazelbuild/setup-bazelisk` action with `bazel-contrib/setup-bazel`.

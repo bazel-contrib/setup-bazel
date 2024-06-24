@@ -62,6 +62,11 @@ async function downloadBazelisk() {
   let platform = config.os.platform
   if (platform == "win32") {
     platform = "windows"
+    // Temporary workaround for ARM64 on Windows until an ARM64 binary is available.
+    // See https://github.com/bazelbuild/bazelisk/issues/572 for details.
+    if (arch == 'arm64') {
+      arch = 'amd64'
+    }
   }
 
   let filename = `bazelisk-${platform}-${arch}`
@@ -94,9 +99,14 @@ async function downloadBazelisk() {
   core.debug(`Downloading from ${url}`)
   const downloadPath = await tc.downloadTool(url, undefined, `token ${token}`)
 
+  let binaryName = 'bazel'
+  if (platform == 'windows') {
+    binaryName = `${binaryName}.exe`
+  }
+
   core.debug('Adding to the cache...');
   fs.chmodSync(downloadPath, '755');
-  const cachePath = await tc.cacheFile(downloadPath, 'bazel', 'bazelisk', version)
+  const cachePath = await tc.cacheFile(downloadPath, binaryName, 'bazelisk', version)
   core.debug(`Successfully cached bazelisk to ${cachePath}`)
 
   return cachePath

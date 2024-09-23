@@ -5,9 +5,11 @@ const core = require('@actions/core')
 const glob = require('@actions/glob')
 const config = require('./config')
 const { getFolderSize } = require('./util')
+const process = require('node:process');
 
 async function run() {
   await saveCaches()
+  process.exit(0)
 }
 
 async function saveCaches() {

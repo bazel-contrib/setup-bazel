@@ -56,6 +56,7 @@ async function saveExternalCaches(cacheConfig) {
       paths: [path]
     })
   }
+  process.exit(0)
 }
 
 async function saveCache(cacheConfig) {

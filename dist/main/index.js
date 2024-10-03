@@ -516,12 +516,11 @@ const requestUtils_1 = __nccwpck_require__(2846);
 const axios_1 = __importDefault(__nccwpck_require__(7269));
 const versionSalt = '1.0';
 function getCacheApiUrl(resource) {
-    const baseUrl = process.env['BLACKSMITH_CACHE_URL'] || 'https://api.blacksmith.sh/cache';
+    const baseUrl = 'https://api.blacksmith.sh/cache';
     if (!baseUrl) {
         throw new Error('Cache Service Url not found, unable to restore cache.');
     }
     const url = `${baseUrl}/${resource}`;
-    core.debug(`Blacksmith cache resource URL: ${url}; version: 3.2.40`);
     return url;
 }
 exports.getCacheApiUrl = getCacheApiUrl;

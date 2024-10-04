@@ -53,4 +53,4 @@ jobs:
               "text": "Bumped setup-bazel v1 to the HEAD of main that points to ${{ github.event.inputs.cache_version }}"
             }
         env:
-          SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
+          SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"

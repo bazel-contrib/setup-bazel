@@ -45,7 +45,8 @@ jobs:
           git push origin v1 --force
     
     
-      - name: Send Slack notification on failure
+      - name: Send Slack notification on success
+        if: steps.git-check.outputs.changes == 'true'
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
@@ -53,4 +54,4 @@ jobs:
               "text": "Bumped setup-bazel v1 to the HEAD of main that points to ${{ github.event.inputs.cache_version }}"
             }
         env:
-          SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
+          SLACK_WEBHOOK_URL: ${{ secrets.CACHE_SLACK_WEBHOOK_URL }}

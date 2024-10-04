@@ -17,7 +17,6 @@ jobs:
       - name: Update package.json
         run: |
           sed -i 's/"@actions\/cache": "npm:@useblacksmith\/cache@[^"]*"/"@actions\/cache": "npm:@useblacksmith\/cache@${{ github.event.inputs.cache_version }}"/' package.json
-
       - name: Install dependencies
         run: npm install
 
@@ -29,27 +28,11 @@ jobs:
         run: |
           git diff --exit-code || echo "changes=true" >> $GITHUB_OUTPUT
 
-      - name: Create Pull Request
-        if: steps.git-check.outputs.changes == 'true'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
-          title: "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
-          body: |
-            This PR updates the @actions/cache version to ${{ github.event.inputs.cache_version }}.
-
-            Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action
-          branch: bump-cache-version
-          base: main
-          delete-branch: true
-
-      - name: Check PR creation
+      - name: Commit and push changes
         if: steps.git-check.outputs.changes == 'true'
         run: |
-          echo "Pull request created successfully"
-
-      - name: No changes detected
-        if: steps.git-check.outputs.changes != 'true'
-        run: |
-          echo "No changes detected. Skipping PR creation."
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
+          git push origin main

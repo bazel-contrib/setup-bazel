@@ -24,16 +24,15 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Commit and push changes
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add .
-          git commit -m "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
-          git push origin main
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
+          title: "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
+          body: |
+            This PR updates the @actions/cache version to ${{ github.event.inputs.cache_version }}.
 
-    #   - name: Update v1 tag
-    #     run: |
-    #       git push origin :refs/tags/v1
-    #       git tag -fa v1 -m "Update v1 tag to latest main"
-    #       git push origin v1
+            Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action
+          branch: bump-cache-version
+          base: main

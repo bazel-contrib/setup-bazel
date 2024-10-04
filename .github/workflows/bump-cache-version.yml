@@ -1,0 +1,39 @@
+name: Bump Cache Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      cache_version:
+        description: 'New @useblacksmith/cache version'
+        required: true
+        type: string
+
+jobs:
+  bump-cache-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update package.json
+        run: |
+          sed -i 's/"@actions\/cache": "npm:@useblacksmith\/cache@[^"]*"/"@actions\/cache": "npm:@useblacksmith\/cache@${{ github.event.inputs.cache_version }}"/' package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+    #   - name: Commit and push changes
+    #     run: |
+    #       git config user.name github-actions
+    #       git config user.email github-actions@github.com
+    #       git add .
+    #       git commit -m "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
+    #       git push origin main
+
+    #   - name: Update v1 tag
+    #     run: |
+    #       git push origin :refs/tags/v1
+    #       git tag -fa v1 -m "Update v1 tag to latest main"
+    #       git push origin v1

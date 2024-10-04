@@ -36,3 +36,21 @@ jobs:
           git add .
           git commit -m "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
           git push origin main
+    
+      - name: Update v1 tag
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git fetch --all --tags
+          git tag -fa v1 -m "Update v1 tag to latest commit"
+          git push origin v1 --force
+    
+    
+      - name: Send Slack notification on failure
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Bumped setup-bazel v1 to the HEAD of main that points to ${{ github.event.inputs.cache_version }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"

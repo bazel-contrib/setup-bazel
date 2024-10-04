@@ -343,7 +343,9 @@ function restoreCache(paths, primaryKey, restoreKeys, options, enableCrossOsArch
         finally {
             // Try to delete the archive to save space
             try {
+                const before = Date.now();
                 yield unlinkWithTimeout(archivePath, 5000);
+                core.info(`cleaning up archive took ${Date.now() - before}ms`);
             }
             catch (error) {
                 core.debug(`Failed to delete archive: ${error}`);
@@ -514,17 +516,11 @@ const requestUtils_1 = __nccwpck_require__(2846);
 const axios_1 = __importDefault(__nccwpck_require__(7269));
 const versionSalt = '1.0';
 function getCacheApiUrl(resource) {
-    var _a, _b;
-    let baseUrl = process.env.BLACKSMITH_CACHE_URL;
+    const baseUrl = 'https://api.blacksmith.sh/cache';
     if (!baseUrl) {
-        baseUrl = ((_a = process.env.PETNAME) === null || _a === void 0 ? void 0 : _a.includes('staging'))
-            ? 'https://stagingapi.blacksmith.sh/cache'
-            : 'https://api.blacksmith.sh/cache';
+        throw new Error('Cache Service Url not found, unable to restore cache.');
     }
     const url = `${baseUrl}/${resource}`;
-    if ((_b = process.env.PETNAME) === null || _b === void 0 ? void 0 : _b.includes('staging')) {
-        core.info(`Using staging API: ${url}`);
-    }
     return url;
 }
 exports.getCacheApiUrl = getCacheApiUrl;
@@ -569,7 +565,7 @@ function getCacheEntry(keys, paths, options) {
         const resource = `?keys=${encodeURIComponent(keys.join(','))}&version=${version}`;
         const maxRetries = 2;
         let retries = 0;
-        core.info(`Checking cache for keys ${keys.join(',')} and version ${version}`);
+        core.info(`Checking cache for keys ${keys.join(',')}`);
         while (retries <= maxRetries) {
             try {
                 const before = Date.now();

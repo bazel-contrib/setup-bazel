@@ -24,7 +24,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check for changes
+        id: git-check
+        run: |
+          git diff --exit-code || echo "changes=true" >> $GITHUB_OUTPUT
+
       - name: Create Pull Request
+        if: steps.git-check.outputs.changes == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,3 +42,14 @@ jobs:
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action
           branch: bump-cache-version
           base: main
+          delete-branch: true
+
+      - name: Check PR creation
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          echo "Pull request created successfully"
+
+      - name: No changes detected
+        if: steps.git-check.outputs.changes != 'true'
+        run: |
+          echo "No changes detected. Skipping PR creation."

@@ -567,7 +567,7 @@ function getCacheEntry(keys, paths, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const version = getCacheVersion(paths, options === null || options === void 0 ? void 0 : options.compressionMethod, options === null || options === void 0 ? void 0 : options.enableCrossOsArchive);
         const resource = `?keys=${encodeURIComponent(keys.join(','))}&version=${version}`;
-        const maxRetries = 2;
+        const maxRetries = 3;
         let retries = 0;
         core.info(`Checking cache for keys ${keys.join(',')} and version ${version}`);
         while (retries <= maxRetries) {
@@ -579,7 +579,7 @@ function getCacheEntry(keys, paths, options) {
                         'X-Github-Repo-Name': process.env['GITHUB_REPO_NAME'],
                         Authorization: `Bearer ${process.env['BLACKSMITH_CACHE_TOKEN']}`
                     },
-                    timeout: 10000 // 10 seconds timeout
+                    timeout: 3000 // 3 seconds timeout
                 });
                 core.debug(`Cache lookup took ${Date.now() - before}ms`);
                 // Cache not found
@@ -605,18 +605,24 @@ function getCacheEntry(keys, paths, options) {
                 return cacheResult;
             }
             catch (error) {
-                if (error.response &&
-                    error.response.status >= 500 &&
-                    retries < maxRetries) {
+                if ((error.response && error.response.status >= 500) ||
+                    error.code === 'ECONNABORTED') {
                     retries++;
-                    core.warning(`Retrying due to server error (attempt ${retries} of ${maxRetries})`);
-                    continue;
+                    if (retries <= maxRetries) {
+                        if (error.code === 'ECONNABORTED') {
+                            core.warning(`Request timed out. Retrying (attempt ${retries} of ${maxRetries})`);
+                        }
+                        else {
+                            core.warning(`Retrying due to error: ${error.message} (attempt ${retries} of ${maxRetries})`);
+                        }
+                        continue;
+                    }
                 }
                 if (error.response) {
                     throw new Error(`Cache service responded with ${error.response.status}`);
                 }
                 else if (error.code === 'ECONNABORTED') {
-                    throw new Error('Request timed out after 10 seconds');
+                    throw new Error('Request timed out after 3 seconds');
                 }
                 else {
                     throw error;

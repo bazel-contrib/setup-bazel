@@ -64,7 +64,7 @@ if (repositoryCacheEnabled) {
 const googleCredentials = core.getInput('google-credentials')
 const googleCredentialsSaved = (core.getState('google-credentials-path').length > 0)
 if (googleCredentials.length > 0 && !googleCredentialsSaved) {
-  const tmpDir = core.toPosixPath(fs.mkdtempSync(os.tmpdir()))
+  const tmpDir = core.toPosixPath(fs.mkdtempSync(process.env.RUNNER_TEMP))
   const googleCredentialsPath = `${tmpDir}/key.json`
   fs.writeFileSync(googleCredentialsPath, googleCredentials)
   bazelrc.push(`build --google_credentials=${googleCredentialsPath}`)

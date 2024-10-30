@@ -727,6 +727,7 @@ function getCacheEntryUsingCacheMgr(keys, paths, destinationPath, options) {
 }
 exports.getCacheEntryUsingCacheMgr = getCacheEntryUsingCacheMgr;
 function getCacheEntry(keys, paths, options) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const version = getCacheVersion(paths, options === null || options === void 0 ? void 0 : options.compressionMethod, options === null || options === void 0 ? void 0 : options.enableCrossOsArchive);
         const resource = `?keys=${encodeURIComponent(keys.join(','))}&version=${version}`;
@@ -741,7 +742,7 @@ function getCacheEntry(keys, paths, options) {
                         Accept: createAcceptHeader('application/json', '6.0-preview.1'),
                         'X-Github-Repo-Name': process.env['GITHUB_REPO_NAME'],
                         Authorization: `Bearer ${process.env['BLACKSMITH_CACHE_TOKEN']}`,
-                        'X-Cache-Region': process.env['BLACKSMITH_REGION']
+                        'X-Cache-Region': (_a = process.env['BLACKSMITH_REGION']) !== null && _a !== void 0 ? _a : 'eu-central'
                     },
                     timeout: 3000 // 3 seconds timeout
                 });
@@ -849,8 +850,9 @@ function reserveCache(key, paths, options) {
             cacheSize: options === null || options === void 0 ? void 0 : options.cacheSize
         };
         const response = yield (0, requestUtils_1.retryTypedResponse)('reserveCache', () => __awaiter(this, void 0, void 0, function* () {
+            var _a;
             return httpClient.postJson(getCacheApiUrl('caches'), reserveCacheRequest, {
-                'X-Cache-Region': process.env['BLACKSMITH_REGION']
+                'X-Cache-Region': (_a = process.env['BLACKSMITH_REGION']) !== null && _a !== void 0 ? _a : 'eu-central'
             });
         }));
         return response;

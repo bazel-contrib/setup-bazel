@@ -29,6 +29,10 @@ inputs:
     description: Google Cloud account key for remote cache
     required: false
     default: ""
+  output-base:
+    description: Bazel output base directory. Default is $HOME/.cache/bazel (POSIX) or D:/_bazel (Windows)
+    required: false
+    default: ""
   repository-cache:
     description: Cache repositories based on MODULE.bazel/WORKSPACE
     required: false

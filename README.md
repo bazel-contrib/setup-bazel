@@ -173,6 +173,28 @@ Default `""`.
   ```
 </details>
 
+### `output-base`
+
+Change Bazel output base directory.
+
+You might want to change it when running on self-hosted runners with a custom directory layout.
+
+Default is one of the following:
+
+- `$HOME/.bazel` on Linux and macOS
+- `D:/_bazel` on Windows
+
+<details>
+  <summary>Examples</summary>
+
+  #### Use `C` drive letter
+
+  ```yaml
+  - uses: bazel-contrib/setup-bazel@0.9.1
+    with:
+      output-base: C:/_bazel
+  ```
+</details>
 
 ### `repository-cache`
 

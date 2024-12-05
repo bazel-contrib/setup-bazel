@@ -18,9 +18,17 @@ const homeDir = os.homedir()
 const arch = os.arch()
 const platform = os.platform()
 
+let bazelOutputBase = core.getInput('output-base')
+if (!bazelOutputBase) {
+  if (platform === 'win32') {
+    bazelOutputBase = 'D:/_bazel'
+  } else {
+    bazelOutputBase = `${homeDir}/.bazel`
+  }
+}
+
 let bazelDisk = core.toPosixPath(`${homeDir}/.cache/bazel-disk`)
 let bazelRepository = core.toPosixPath(`${homeDir}/.cache/bazel-repo`)
-let bazelOutputBase = `${homeDir}/.bazel`
 let bazelrcPaths = [core.toPosixPath(`${homeDir}/.bazelrc`)]
 let userCacheDir = `${homeDir}/.cache`
 
@@ -29,9 +37,8 @@ switch (platform) {
     userCacheDir = `${homeDir}/Library/Caches`
     break
   case 'win32':
-    bazelDisk = 'D:/_bazel-disk'
-    bazelRepository = 'D:/_bazel-repo'
-    bazelOutputBase = 'D:/_bazel'
+    bazelDisk = `${bazelOutputBase}-disk`
+    bazelRepository = `${bazelOutputBase}-repo`
     userCacheDir = `${homeDir}/AppData/Local`
     if (process.env.HOME) {
       bazelrcPaths.push(core.toPosixPath(`${process.env.HOME}/.bazelrc`))

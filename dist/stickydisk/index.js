@@ -26002,14 +26002,6 @@ module.exports = require("node:events");
 
 /***/ }),
 
-/***/ 1708:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:process");
-
-/***/ }),
-
 /***/ 7075:
 /***/ ((module) => {
 
@@ -52213,40 +52205,13 @@ const StickyDiskService = {
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-const core = __nccwpck_require__(7484)
-const { unmountAndCommitStickyDisk } = __nccwpck_require__(7220)
-const post_process = __nccwpck_require__(1708);
-
-async function run() {
-  try {
-    // Handle sticky disk unmounting and committing.
-    await cleanupStickyDisks()
-  } catch (error) {
-    core.setFailed(error.message)
-  }
-  post_process.exit(0)
-}
-
-async function cleanupStickyDisks() {
-  const mountsJson = core.getState('sticky-disk-mounts')
-  if (!mountsJson) {
-    core.debug('No sticky disk mounts found in state')
-    return
-  }
-
-  const mounts = JSON.parse(mountsJson)
-  core.debug(`Mounts: ${JSON.stringify(mounts, null, 2)}`)
-
-  // Process each mounted sticky disk
-  await Promise.all(Object.entries(mounts).map(async ([path, mountInfo]) => {
-    await unmountAndCommitStickyDisk(path, mountInfo, mountInfo.stickyDiskKey)
-  }))
-}
-
-run()
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(7220);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
 //# sourceMappingURL=index.js.map

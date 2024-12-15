@@ -10,6 +10,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: bufbuild/buf-setup-action@v1
+      - run: |
+          npm config set @buf:registry https://buf.build/gen/npm/v1/
+          npm config set //buf.build/gen/npm/v1/:_authToken ${{ secrets.BUF_TOKEN }}
+          npm install @buf/blacksmith_vm-agent.connectrpc_es@latest
+      - run: npm ci
+      - run: npm test
+
   setup-bazel:
     runs-on: ${{ matrix.os }}-latest
     strategy:

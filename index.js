@@ -1,16 +1,18 @@
 const fs = require('fs')
 const { setTimeout } = require('timers/promises')
 const core = require('@actions/core')
-const cache = require('@actions/cache')
 const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
+const { mountStickyDisk } = require('./stickydisk');
+const crypto = require('crypto')
 
 async function run() {
   try {
     await setupBazel()
   } catch (error) {
+    core.saveState('action-failed', 'true')
     core.setFailed(error.stack)
   }
 }
@@ -24,10 +26,22 @@ async function setupBazel() {
   core.endGroup()
 
   await setupBazelisk()
-  await restoreCache(config.bazeliskCache)
-  await restoreCache(config.diskCache)
-  await restoreCache(config.repositoryCache)
-  await restoreExternalCaches(config.externalCache)
+  const bazeliskMounts = await loadStickyDisk(config.bazeliskCache)
+  const diskMounts = await loadStickyDisk(config.diskCache)
+  const repoMounts = await loadStickyDisk(config.repositoryCache)
+  const externalMounts = await loadExternalStickyDisks(config.externalCache)
+
+  const allMounts = {
+    ...bazeliskMounts,
+    ...diskMounts,
+    ...repoMounts,
+    ...externalMounts
+  };
+
+  // Save the combined mounts from this run
+  core.saveState('sticky-disk-mounts', JSON.stringify(allMounts));
+
+  return allMounts;
 }
 
 async function setupBazelisk() {
@@ -112,68 +126,111 @@ async function setupBazelrc() {
   }
 }
 
-async function restoreExternalCaches(cacheConfig) {
+async function loadExternalStickyDisks(cacheConfig) {
   if (!cacheConfig.enabled) {
-    return
+    return {}
   }
 
   // First fetch the manifest of external caches used.
   const path = cacheConfig.manifest.path
-  await restoreCache({
+  const manifestMounts = await loadStickyDisk({
     enabled: true,
     files: cacheConfig.manifest.files,
     name: cacheConfig.manifest.name,
     paths: [path]
   })
 
+  let allMounts = { ...manifestMounts }
+
   // Now restore all external caches defined in manifest
   if (fs.existsSync(path)) {
+    process.stderr.write(`Restoring external caches from ${path}\n`)
     const manifest = fs.readFileSync(path, { encoding: 'utf8' })
     for (const name of manifest.split('\n').filter(s => s)) {
-      await restoreCache({
+      const mounts = await loadStickyDisk({
         enabled: cacheConfig[name]?.enabled ?? cacheConfig.default.enabled,
         files: cacheConfig[name]?.files || cacheConfig.default.files,
         name: cacheConfig.default.name(name),
         paths: cacheConfig.default.paths(name)
       })
+      allMounts = { ...allMounts, ...mounts }
     }
   }
+
+  return allMounts
 }
 
-async function restoreCache(cacheConfig) {
+async function loadStickyDisk(cacheConfig) {
   if (!cacheConfig.enabled) {
-    return
+    return {};
   }
 
-  const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
-  await setTimeout(delay, async function () {
-    core.startGroup(`Restore cache for ${cacheConfig.name}`)
+  const delay = Math.random() * 1000 // timeout <= 1 sec to reduce contention
+  const mounts = await setTimeout(delay, async function () {
+    core.startGroup(`Setting up sticky disk for ${cacheConfig.name}`)
 
     const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const name = cacheConfig.name
     const paths = cacheConfig.paths
-    const restoreKey = `${config.baseCacheKey}-${name}-`
-    const key = `${restoreKey}${hash}`
+    const baseKey = `${config.baseCacheKey}-${name}-${hash}`
+    const newMounts = {};
 
-    core.debug(`Attempting to restore ${name} cache from ${key}`)
+    try {
+      const controller = new AbortController();
 
-    const restoredKey = await cache.restoreCache(
-      paths, key, [restoreKey],
-      { segmentTimeoutInMs: 300000 } // 5 minutes
-    )
+      // Mount sticky disk for each path in the config and collect results
+      const mountResults = await Promise.all(paths.map(async (path) => {
+        try {
+          // Create a unique key for each path by including a hash of the path
+          const pathHash = crypto
+            .createHash('sha256')
+            .update(path)
+            .digest('hex')
+            .slice(0, 8); // Take first 8 chars of hash for brevity
 
-    if (restoredKey) {
-      core.info(`Successfully restored cache from ${restoredKey}`)
+          const pathKey = `${baseKey}-${pathHash}`;
 
-      if (restoredKey === key) {
-        core.saveState(`${name}-cache-hit`, 'true')
+          const { device, exposeId } = await mountStickyDisk(
+            pathKey,
+            path,
+            controller.signal,
+            controller
+          );
+          core.debug(`Mounted device ${device} at ${path} with expose ID ${exposeId}`);
+
+          return {
+            path,
+            mount: { device, exposeId, stickyDiskKey: pathKey }
+          };
+        } catch (error) {
+          core.warning(`Failed to mount sticky disk for ${path}: ${error}`);
+          return null;
+        }
+      }));
+
+      // Add successful mounts to the collection
+      for (const result of mountResults) {
+        if (result) {
+          newMounts[result.path] = result.mount;
+        }
       }
-    } else {
-      core.info(`Failed to restore ${name} cache`)
+
+      core.info('Successfully mounted sticky disks');
+    } catch (error) {
+      core.warning(`Failed to setup sticky disks for ${name}: ${error}`);
     }
 
     core.endGroup()
+    return newMounts;
   }())
+
+  return mounts;
 }
 
 run()
+
+module.exports = {
+  loadStickyDisk,
+  loadExternalStickyDisks,
+  setupBazel
+}

@@ -41,7 +41,7 @@ const diskCacheEnabled = diskCacheConfig !== 'false'
 let diskCacheName = 'disk'
 if (diskCacheEnabled) {
   bazelrc.push(`build --disk_cache=${bazelDisk}`)
-  if (diskCacheName !== 'true') {
+  if (diskCacheConfig !== 'true') {
     diskCacheName = `${diskCacheName}-${diskCacheConfig}`
   }
 }

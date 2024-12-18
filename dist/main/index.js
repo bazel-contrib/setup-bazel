@@ -35485,15 +35485,14 @@ async function mountStickyDisk(stickyDiskKey, stickyDiskPath, signal, controller
     await maybeFormatBlockDevice(device);
 
     // Create mount point WITHOUT sudo so the directory is owned by runner user
-    // This is important because the mount point ownership affects access when nothing is mounted
+    // This is important because the mount point ownership affects access when nothing is mounted.
     await execAsync(`mkdir -p ${stickyDiskPath}`);
 
-    // Mount with specific options to ensure runner user can access:
-    // - uid=$(id -u): Sets owner of all files to current (runner) user
-    // - gid=$(id -g): Sets group of all files to current user's group
-    // - umask=0022: Ensures new files get 644 perms and directories get 755 perms
-    // Need sudo for mount as it requires root privileges
-    await execAsync(`sudo mount -o uid=$(id -u),gid=$(id -g),umask=0022 ${device} ${stickyDiskPath}`);
+    // Mount the device with default options
+    await execAsync(`sudo mount ${device} ${stickyDiskPath}`);
+
+    // After mounting, set the ownership of the mount point
+    await execAsync(`sudo chown $(id -u):$(id -g) ${stickyDiskPath}`);
 
     core.debug(`${device} has been mounted to ${stickyDiskPath} with expose ID ${exposeId}`);
     return { device, exposeId };

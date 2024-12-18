@@ -25709,11 +25709,13 @@ async function maybeFormatBlockDevice(device) {
     try {
         // Check if device is formatted with ext4
         try {
+            // Need sudo for blkid as it requires root to read block device metadata
             const { stdout } = await execAsync(`sudo blkid -o value -s TYPE ${device}`);
             if (stdout.trim() === 'ext4') {
                 core.debug(`Device ${device} is already formatted with ext4`);
                 try {
-                    // Run resize2fs to ensure filesystem uses full block device
+                    // Need sudo for resize2fs as it requires root to modify block device
+                    // This operation preserves existing filesystem ownership and permissions
                     await execAsync(`sudo resize2fs -f ${device}`);
                     core.debug(`Resized ext4 filesystem on ${device}`);
                 } catch (error) {
@@ -25726,9 +25728,13 @@ async function maybeFormatBlockDevice(device) {
             core.debug(`No filesystem found on ${device}, will format it`);
         }
 
-        // Format device with ext4
+        // Format device with ext4, setting default ownership to current user
         core.debug(`Formatting device ${device} with ext4`);
-        await execAsync(`sudo mkfs.ext4 -m0 -Enodiscard,lazy_itable_init=1,lazy_journal_init=1 -F ${device}`);
+        // Need sudo for mkfs.ext4 as it requires root to format block device
+        // -m0: Disable reserved blocks (all space available to non-root users)
+        // root_owner=$(id -u):$(id -g): Sets filesystem root directory owner to current (runner) user
+        // This ensures the filesystem is owned by runner user from the start
+        await execAsync(`sudo mkfs.ext4 -m0 -E root_owner=$(id -u):$(id -g) -Enodiscard,lazy_itable_init=1,lazy_journal_init=1 -F ${device}`);
         core.debug(`Successfully formatted ${device} with ext4`);
         return device;
     } catch (error) {
@@ -25753,9 +25759,17 @@ async function mountStickyDisk(stickyDiskKey, stickyDiskPath, signal, controller
     clearTimeout(timeoutId);
 
     await maybeFormatBlockDevice(device);
-    await execAsync(`sudo mkdir -p ${stickyDiskPath}`);
-    await execAsync(`sudo mount ${device} ${stickyDiskPath}`);
-    await execAsync(`sudo chown -R $(id -u):$(id -g) ${stickyDiskPath}`);
+
+    // Create mount point WITHOUT sudo so the directory is owned by runner user
+    // This is important because the mount point ownership affects access when nothing is mounted
+    await execAsync(`mkdir -p ${stickyDiskPath}`);
+
+    // Mount with specific options to ensure runner user can access:
+    // - uid=$(id -u): Sets owner of all files to current (runner) user
+    // - gid=$(id -g): Sets group of all files to current user's group
+    // - umask=0022: Ensures new files get 644 perms and directories get 755 perms
+    // Need sudo for mount as it requires root privileges
+    await execAsync(`sudo mount -o uid=$(id -u),gid=$(id -g),umask=0022 ${device} ${stickyDiskPath}`);
 
     core.debug(`${device} has been mounted to ${stickyDiskPath} with expose ID ${exposeId}`);
     return { device, exposeId };

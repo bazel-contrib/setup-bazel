@@ -1,0 +1,28 @@
+name: Bump Tag
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bump-cache-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # NOTE: Only bump v2, since we want to keep v1 backed by the Blacksmith cache for now.
+      - name: Update v2 tag
+        run: |
+          git fetch --all --tags
+          git tag -fa v2 -m "Update v2 tag to latest commit"
+          git push origin v2 --force
+    
+    
+      - name: Send Slack notification on success
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Bumped setup-bazel v2 to the HEAD of main"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CACHE_SLACK_WEBHOOK_URL }}

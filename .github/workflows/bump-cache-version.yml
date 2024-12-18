@@ -37,13 +37,13 @@ jobs:
           git commit -m "Bump @actions/cache version to ${{ github.event.inputs.cache_version }}"
           git push origin main
     
-      # NOTE: DO NOT bump v1, since we want to keep it backed by the Blacksmith cache for now.
-      - name: Update v2 tag
+      # NOTE: Only bump v1, since we want to keep it backed by the Blacksmith cache for now.
+      - name: Update v1 tag
         if: steps.git-check.outputs.changes == 'true'
         run: |
           git fetch --all --tags
-          git tag -fa v2 -m "Update v2 tag to latest commit"
-          git push origin v2 --force
+          git tag -fa v1 -m "Update v1 tag to latest commit"
+          git push origin v1 --force
     
     
       - name: Send Slack notification on success
@@ -52,7 +52,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "Bumped setup-bazel v2 to the HEAD of main that points to ${{ github.event.inputs.cache_version }}"
+              "text": "Bumped setup-bazel v1 to the HEAD of main that points to ${{ github.event.inputs.cache_version }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CACHE_SLACK_WEBHOOK_URL }}

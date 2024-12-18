@@ -9,6 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Commit and push changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
       # NOTE: Only bump v2, since we want to keep v1 backed by the Blacksmith cache for now.
       - name: Update v2 tag
         run: |

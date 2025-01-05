@@ -123,6 +123,9 @@ if (externalCacheConfig) {
   }
 }
 
+const token = core.getInput('token')
+core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
+
 module.exports = {
   baseCacheKey,
   bazeliskCache: {

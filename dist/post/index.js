@@ -53,7 +53,7 @@ const diskCacheConfig = core.getInput('disk-cache')
 const diskCacheEnabled = diskCacheConfig !== 'false'
 let diskCacheName = 'disk'
 if (diskCacheEnabled) {
-  bazelrc.push(`build --disk_cache=${bazelDisk}`)
+  bazelrc.push(`common --disk_cache=${bazelDisk}`)
   if (diskCacheName !== 'true') {
     diskCacheName = `${diskCacheName}-${diskCacheConfig}`
   }
@@ -68,7 +68,7 @@ let repositoryCacheFiles = [
   'WORKSPACE'
 ]
 if (repositoryCacheEnabled) {
-  bazelrc.push(`build --repository_cache=${bazelRepository}`)
+  bazelrc.push(`common --repository_cache=${bazelRepository}`)
   if (repositoryCacheConfig !== 'true') {
     repositoryCacheFiles = Array(repositoryCacheConfig).flat()
   }

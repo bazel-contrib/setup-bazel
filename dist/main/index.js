@@ -106199,7 +106199,8 @@ async function downloadBazelisk() {
     filename = `${filename}.exe`
   }
 
-  const octokit = github.getOctokit(process.env.BAZELISK_GITHUB_TOKEN, {
+  const token = process.env.BAZELISK_GITHUB_TOKEN
+  const octokit = github.getOctokit(token, {
     baseUrl: 'https://api.github.com'
   })
   const { data: releases } = await octokit.rest.repos.listReleases({

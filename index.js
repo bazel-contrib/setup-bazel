@@ -7,6 +7,7 @@ const tc = require('@actions/tool-cache')
 const config = require('./config')
 const { mountStickyDisk } = require('./stickydisk');
 const crypto = require('crypto')
+const cache = require('@actions/cache')
 
 async function run() {
   try {
@@ -29,13 +30,12 @@ async function setupBazel() {
   const bazeliskMounts = await loadStickyDisk(config.bazeliskCache)
   const diskMounts = await loadStickyDisk(config.diskCache)
   const repoMounts = await loadStickyDisk(config.repositoryCache)
-  const externalMounts = await loadExternalStickyDisks(config.externalCache)
+  await restoreExternalCaches(config.externalCache)
 
   const allMounts = {
     ...bazeliskMounts,
     ...diskMounts,
     ...repoMounts,
-    ...externalMounts
   };
 
   // Save the combined mounts from this run
@@ -43,6 +43,71 @@ async function setupBazel() {
 
   return allMounts;
 }
+
+async function restoreExternalCaches(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  // First fetch the manifest of external caches used.
+  const path = cacheConfig.manifest.path
+  await restoreCache({
+    enabled: true,
+    files: cacheConfig.manifest.files,
+    name: cacheConfig.manifest.name,
+    paths: [path]
+  })
+
+  // Now restore all external caches defined in manifest
+  if (fs.existsSync(path)) {
+    const manifest = fs.readFileSync(path, { encoding: 'utf8' })
+    for (const name of manifest.split('\n').filter(s => s)) {
+      await restoreCache({
+        enabled: cacheConfig[name]?.enabled ?? cacheConfig.default.enabled,
+        files: cacheConfig[name]?.files || cacheConfig.default.files,
+        name: cacheConfig.default.name(name),
+        paths: cacheConfig.default.paths(name)
+      })
+    }
+  }
+}
+
+async function restoreCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
+  await setTimeout(delay, async function () {
+    core.startGroup(`Restore cache for ${cacheConfig.name}`)
+
+    const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
+    const name = cacheConfig.name
+    const paths = cacheConfig.paths
+    const restoreKey = `${config.baseCacheKey}-${name}-`
+    const key = `${restoreKey}${hash}`
+
+    core.debug(`Attempting to restore ${name} cache from ${key}`)
+
+    const restoredKey = await cache.restoreCache(
+      paths, key, [restoreKey],
+      { segmentTimeoutInMs: 300000 } // 5 minutes
+    )
+
+    if (restoredKey) {
+      core.info(`Successfully restored cache from ${restoredKey}`)
+
+      if (restoredKey === key) {
+        core.saveState(`${name}-cache-hit`, 'true')
+      }
+    } else {
+      core.info(`Failed to restore ${name} cache`)
+    }
+
+    core.endGroup()
+  }())
+}
+
 
 async function setupBazelisk() {
   if (config.bazeliskVersion.length == 0) {

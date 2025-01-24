@@ -138,10 +138,10 @@ module.exports = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
-    files: [
+    files: repositoryCacheFiles.concat([
       '**/BUILD.bazel',
       '**/BUILD'
-    ],
+    ]),
     name: diskCacheName,
     paths: [bazelDisk]
   },

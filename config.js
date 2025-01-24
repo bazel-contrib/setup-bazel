@@ -139,6 +139,7 @@ module.exports = {
   diskCache: {
     enabled: diskCacheEnabled,
     files: [
+      ...repositoryCacheFiles,
       '**/BUILD.bazel',
       '**/BUILD'
     ],

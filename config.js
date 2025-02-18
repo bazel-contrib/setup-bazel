@@ -7,6 +7,7 @@ const github = require('@actions/github')
 const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
+const moduleRoot = core.getInput('module-root')
 
 const homeDir = os.homedir()
 const arch = os.arch()
@@ -56,10 +57,10 @@ if (diskCacheEnabled) {
 const repositoryCacheConfig = core.getInput('repository-cache')
 const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
 let repositoryCacheFiles = [
-  'MODULE.bazel',
-  'WORKSPACE.bazel',
-  'WORKSPACE.bzlmod',
-  'WORKSPACE'
+  `${moduleRoot}/MODULE.bazel`,
+  `${moduleRoot}/WORKSPACE.bazel`,
+  `${moduleRoot}/WORKSPACE.bzlmod`,
+  `${moduleRoot}/WORKSPACE`
 ]
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
@@ -90,10 +91,10 @@ if (externalCacheConfig) {
   externalCache.baseCacheKey = `${baseCacheKey}-external-`
   externalCache.manifest = {
     files: [
-      'MODULE.bazel',
-      'WORKSPACE.bazel',
-      'WORKSPACE.bzlmod',
-      'WORKSPACE'
+      `${moduleRoot}/MODULE.bazel`,
+      `${moduleRoot}/WORKSPACE.bazel`,
+      `${moduleRoot}/WORKSPACE.bzlmod`,
+      `${moduleRoot}/WORKSPACE`
     ],
     name: `external-${manifestName}-manifest`,
     path: `${os.tmpdir()}/external-cache-manifest.txt`
@@ -101,10 +102,10 @@ if (externalCacheConfig) {
   externalCache.default = {
     enabled: true,
     files: [
-      'MODULE.bazel',
-      'WORKSPACE.bazel',
-      'WORKSPACE.bzlmod',
-      'WORKSPACE'
+      `${moduleRoot}/MODULE.bazel`,
+      `${moduleRoot}/WORKSPACE.bazel`,
+      `${moduleRoot}/WORKSPACE.bzlmod`,
+      `${moduleRoot}/WORKSPACE`
     ],
     name: (name) => { return `external-${name}` },
     paths: (name) => {
@@ -130,7 +131,7 @@ module.exports = {
   baseCacheKey,
   bazeliskCache: {
     enabled: core.getBooleanInput('bazelisk-cache'),
-    files: ['.bazelversion'],
+    files: [`${moduleRoot}/.bazelversion`],
     name: 'bazelisk',
     paths: [core.toPosixPath(`${userCacheDir}/bazelisk`)]
   },
@@ -140,8 +141,8 @@ module.exports = {
     enabled: diskCacheEnabled,
     files: [
       ...repositoryCacheFiles,
-      '**/BUILD.bazel',
-      '**/BUILD'
+      `${moduleRoot}/**/BUILD.bazel`,
+      `${moduleRoot}/**/BUILD`
     ],
     name: diskCacheName,
     paths: [bazelDisk]

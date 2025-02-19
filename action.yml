@@ -21,6 +21,10 @@ inputs:
     description: Cache actions outputs based on BUILD
     required: false
     default: "false"
+  disk-cache-files:
+    description: Custom disk cache files
+    required: false
+    default: ""
   external-cache:
     description: Cache external 10MB+ repositories based on MODULE.bazel/WORKSPACE
     required: false

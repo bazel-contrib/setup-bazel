@@ -111,6 +111,27 @@ Default `false`.
   ```
 </details>
 
+### `disk-cache-files`
+
+Specify custom disk cache files.
+
+Default `""`.
+
+<details>
+  <summary>Examples</summary>
+
+  #### Override disk cache files
+
+  ```yaml
+  - uses: bazel-contrib/setup-bazel@0.13.0
+    with:
+      disk-cache-files: |
+        **/BUILD.bazel
+        **/BUILD
+        custom/path/BUILD
+  ```
+</details>
+
 ### `external-cache`
 
 Cache `external/` repositories based on contents of `MODULE.bazel` and `WORKSPACE` files.

@@ -53,6 +53,15 @@ if (diskCacheEnabled) {
   }
 }
 
+const diskCacheFilesConfig = core.getMultilineInput('disk-cache-files')
+let diskCacheFiles = [
+  '**/BUILD.bazel',
+  '**/BUILD'
+]
+if (diskCacheFilesConfig.length > 0) {
+  diskCacheFiles = diskCacheFilesConfig
+}
+
 const repositoryCacheConfig = core.getInput('repository-cache')
 const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
 let repositoryCacheFiles = [
@@ -140,8 +149,7 @@ module.exports = {
     enabled: diskCacheEnabled,
     files: [
       ...repositoryCacheFiles,
-      '**/BUILD.bazel',
-      '**/BUILD'
+      ...diskCacheFiles
     ],
     name: diskCacheName,
     paths: [bazelDisk]

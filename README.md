@@ -173,6 +173,14 @@ Default `""`.
   ```
 </details>
 
+### `module-root`
+
+Bazel module root directory, where `MODULE.bazel` and `WORKSPACE` is found.
+
+Change this value to the module root if it's not the repository root.
+
+Default `"."`.
+
 ### `output-base`
 
 Change Bazel output base directory.

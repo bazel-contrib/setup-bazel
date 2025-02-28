@@ -21,6 +21,10 @@ inputs:
     description: Cache actions outputs based on BUILD
     required: false
     default: "false"
+  max-disk-cache-size:
+    description: Maximum disk cache size, in GB
+    required: false
+    default: 5
   external-cache:
     description: Cache external 10MB+ repositories based on MODULE.bazel/WORKSPACE
     required: false

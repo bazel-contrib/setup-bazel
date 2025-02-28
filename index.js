@@ -6,6 +6,7 @@ const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
+const gc = require('./gc')
 
 async function run() {
   try {
@@ -28,6 +29,8 @@ async function setupBazel() {
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
+
+  gc.init()
 }
 
 async function setupBazelisk() {

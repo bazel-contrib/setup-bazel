@@ -111,6 +111,13 @@ Default `false`.
   ```
 </details>
 
+### `max-disk-cache-size`
+
+The maximum size, in GB, allowed for the disk cache.
+Exceeding this size results in garbage collection.
+
+Default `5`.
+
 ### `external-cache`
 
 Cache `external/` repositories based on contents of `MODULE.bazel` and `WORKSPACE` files.

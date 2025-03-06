@@ -18,12 +18,16 @@ function init() {
 }
 
 function run() {
+  if (!fs.existsSync(diskCachePath)) {
+    return
+  }
+
   const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
     .filter(d => d.isFile())
     .map(d => {
       const file = path.join(d.path, d.name)
-      const stats = fs.statSync(file)
-      return { file, mtime: stats.mtime, size: stats.size }
+      const { mtime, size} = fs.statSync(file)
+      return { file, mtime, size }
     })
     .sort((a, b) => b.mtime - a.mtime)
 
@@ -51,14 +55,20 @@ function cacheChanged() {
 }
 
 function computeDiskCacheHash() {
-  const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
-    .filter(d => d.isFile())
-    .map(d => d.path)
-    .sort()
+  let hash = crypto.createHash('sha256')
 
-  core.info(`Collected ${files.length} files`)
+  if (fs.existsSync(diskCachePath)) {
+    const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+      .filter(d => d.isFile())
+      .map(d => d.path)
+      .sort()
 
-  return crypto.createHash('sha256').update(files.join('\n')).digest('hex')
+    hash.update(files.join('\n'))
+
+    core.info(`Collected ${files.length} files`)
+  }
+
+  return hash.digest('hex')
 }
 
 module.exports = {

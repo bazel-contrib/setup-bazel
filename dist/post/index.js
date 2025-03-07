@@ -102427,6 +102427,7 @@ const fs = __nccwpck_require__(9896)
 const path = __nccwpck_require__(6928)
 const cache = __nccwpck_require__(5116)
 const core = __nccwpck_require__(7484)
+const github = __nccwpck_require__(3228)
 const glob = __nccwpck_require__(7206)
 const config = __nccwpck_require__(700)
 const gc = __nccwpck_require__(1724)
@@ -102505,7 +102506,7 @@ async function saveDiskCache(cacheConfig) {
       // We don't want to follow symlinks as it's extremely slow on macOS.
       { followSymbolicLinks: false }
     )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${github.context.runId}.${github.context.runAttempt}`
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

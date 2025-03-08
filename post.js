@@ -2,8 +2,10 @@ const fs = require('fs')
 const path = require('path')
 const cache = require('@actions/cache')
 const core = require('@actions/core')
+const github = require('@actions/github')
 const glob = require('@actions/glob')
 const config = require('./config')
+const gc = require('./gc')
 const { getFolderSize } = require('./util')
 const process = require('node:process');
 
@@ -14,7 +16,7 @@ async function run() {
 
 async function saveCaches() {
   await saveCache(config.bazeliskCache)
-  await saveCache(config.diskCache)
+  await saveDiskCache(config.diskCache)
   await saveCache(config.repositoryCache)
   await saveExternalCaches(config.externalCache)
 }
@@ -57,6 +59,36 @@ async function saveExternalCaches(cacheConfig) {
       name: cacheConfig.manifest.name,
       paths: [path]
     })
+  }
+}
+
+async function saveDiskCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  gc.run()
+  if (!gc.cacheChanged()) {
+    return
+  }
+
+  try {
+    core.startGroup(`Save cache for ${cacheConfig.name}`)
+    const paths = cacheConfig.paths
+    const hash = await glob.hashFiles(
+      cacheConfig.files.join('\n'),
+      undefined,
+      // We don't want to follow symlinks as it's extremely slow on macOS.
+      { followSymbolicLinks: false }
+    )
+    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${github.context.runId}.${github.context.runAttempt}`
+    core.debug(`Attempting to save ${paths} cache to ${key}`)
+    await cache.saveCache(paths, key)
+    core.info('Successfully saved cache')
+  } catch (error) {
+    core.warning(error.stack)
+  } finally {
+    core.endGroup()
   }
 }
 

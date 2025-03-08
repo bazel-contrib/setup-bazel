@@ -14,6 +14,7 @@ const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
+const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 
 const homeDir = os.homedir()
 const arch = os.arch()
@@ -153,6 +154,7 @@ module.exports = {
     name: diskCacheName,
     paths: [bazelDisk]
   },
+  maxDiskCacheSize,
   externalCache,
   paths: {
     bazelExternal,
@@ -169,6 +171,91 @@ module.exports = {
     name: 'repository',
     paths: [bazelRepository]
   },
+}
+
+
+/***/ }),
+
+/***/ 1724:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const crypto = __nccwpck_require__(6982)
+const fs = __nccwpck_require__(9896)
+const path = __nccwpck_require__(6928)
+const core = __nccwpck_require__(7484)
+const config = __nccwpck_require__(700)
+
+const diskCachePath = config.diskCache.paths[0]
+const diskCacheHash = diskCachePath + '.sha256'
+
+function init() {
+  if (!config.diskCache.enabled) {
+    return
+  }
+
+  core.startGroup("Computing initial disk cache hash")
+  fs.writeFileSync(diskCacheHash, computeDiskCacheHash())
+  core.endGroup()
+}
+
+function run() {
+  if (!fs.existsSync(diskCachePath)) {
+    return
+  }
+
+  const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+    .filter(d => d.isFile())
+    .map(d => {
+      const file = path.join(d.path, d.name)
+      const { mtime, size} = fs.statSync(file)
+      return { file, mtime, size }
+    })
+    .sort((a, b) => b.mtime - a.mtime)
+
+  core.startGroup(`Running disk cache garbage collection`)
+  const deleteThreshold = config.maxDiskCacheSize * 1024 ** 3
+  let cacheSize = 0
+  let reclaimed = 0
+  for (const { file, size } of files) {
+    cacheSize += size
+    if (cacheSize >= deleteThreshold) {
+      fs.unlinkSync(file)
+      reclaimed++
+    }
+  }
+  core.info(`Reclaimed ${reclaimed} files`)
+  core.endGroup()
+}
+
+function cacheChanged() {
+  core.startGroup(`Checking disk cache for changes`)
+  const changed = fs.readFileSync(diskCacheHash) != computeDiskCacheHash()
+  core.info(`Cache has changes: ${changed}`)
+  core.endGroup()
+  return changed
+}
+
+function computeDiskCacheHash() {
+  let hash = crypto.createHash('sha256')
+
+  if (fs.existsSync(diskCachePath)) {
+    const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+      .filter(d => d.isFile())
+      .map(d => d.path)
+      .sort()
+
+    hash.update(files.join('\n'))
+
+    core.info(`Collected ${files.length} files`)
+  }
+
+  return hash.digest('hex')
+}
+
+module.exports = {
+  init,
+  run,
+  cacheChanged,
 }
 
 
@@ -585,12 +672,20 @@ function saveCacheV2(paths, key, options, enableCrossOsArchive = false) {
                 key,
                 version
             };
-            const response = yield twirpClient.CreateCacheEntry(request);
-            if (!response.ok) {
+            let signedUploadUrl;
+            try {
+                const response = yield twirpClient.CreateCacheEntry(request);
+                if (!response.ok) {
+                    throw new Error('Response was not ok');
+                }
+                signedUploadUrl = response.signedUploadUrl;
+            }
+            catch (error) {
+                core.debug(`Failed to reserve cache: ${error}`);
                 throw new ReserveCacheError(`Unable to reserve cache with key ${key}, another job may be creating this cache.`);
             }
             core.debug(`Attempting to upload cache located at: ${archivePath}`);
-            yield cacheHttpClient.saveCache(cacheId, archivePath, response.signedUploadUrl, options);
+            yield cacheHttpClient.saveCache(cacheId, archivePath, signedUploadUrl, options);
             const finalizeRequest = {
                 key,
                 version,
@@ -103122,7 +103217,7 @@ exports.visitAsync = visitAsync;
 /***/ ((module) => {
 
 "use strict";
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"4.0.1","preview":true,"description":"Actions cache lib","keywords":["github","actions","cache"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/cache","license":"MIT","main":"lib/cache.js","types":"lib/cache.d.ts","directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/cache"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"echo \\"Error: run tests from root\\" && exit 1","tsc":"tsc"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^1.11.1","@actions/exec":"^1.0.1","@actions/glob":"^0.1.0","@actions/http-client":"^2.1.1","@actions/io":"^1.0.1","@azure/abort-controller":"^1.1.0","@azure/ms-rest-js":"^2.6.0","@azure/storage-blob":"^12.13.0","@protobuf-ts/plugin":"^2.9.4","semver":"^6.3.1"},"devDependencies":{"@types/semver":"^6.0.0","typescript":"^5.2.2"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"4.0.2","preview":true,"description":"Actions cache lib","keywords":["github","actions","cache"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/cache","license":"MIT","main":"lib/cache.js","types":"lib/cache.d.ts","directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/cache"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"echo \\"Error: run tests from root\\" && exit 1","tsc":"tsc"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^1.11.1","@actions/exec":"^1.0.1","@actions/glob":"^0.1.0","@actions/http-client":"^2.1.1","@actions/io":"^1.0.1","@azure/abort-controller":"^1.1.0","@azure/ms-rest-js":"^2.6.0","@azure/storage-blob":"^12.13.0","@protobuf-ts/plugin":"^2.9.4","semver":"^6.3.1"},"devDependencies":{"@types/semver":"^6.0.0","typescript":"^5.2.2"}}');
 
 /***/ }),
 
@@ -103189,6 +103284,7 @@ const github = __nccwpck_require__(3228)
 const glob = __nccwpck_require__(7206)
 const tc = __nccwpck_require__(3472)
 const config = __nccwpck_require__(700)
+const gc = __nccwpck_require__(1724)
 
 async function run() {
   try {
@@ -103208,9 +103304,11 @@ async function setupBazel() {
 
   await setupBazelisk()
   await restoreCache(config.bazeliskCache)
-  await restoreCache(config.diskCache)
+  await restoreDiskCache(config.diskCache)
   await restoreCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
+
+  gc.init()
 }
 
 async function setupBazelisk() {
@@ -103323,7 +103421,7 @@ async function restoreExternalCaches(cacheConfig) {
   }
 }
 
-async function restoreCache(cacheConfig) {
+async function restoreCacheImpl(cacheConfig, primaryKey, restoreKeys, cacheHit) {
   if (!cacheConfig.enabled) {
     return
   }
@@ -103332,23 +103430,20 @@ async function restoreCache(cacheConfig) {
   await index_setTimeout(delay, async function () {
     core.startGroup(`Restore cache for ${cacheConfig.name}`)
 
-    const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const name = cacheConfig.name
     const paths = cacheConfig.paths
-    const restoreKey = `${config.baseCacheKey}-${name}-`
-    const key = `${restoreKey}${hash}`
 
-    core.debug(`Attempting to restore ${name} cache from ${key}`)
+    core.debug(`Attempting to restore ${name} cache from ${primaryKey}`)
 
     const restoredKey = await cache.restoreCache(
-      paths, key, [restoreKey],
+      paths, primaryKey, restoreKeys,
       { segmentTimeoutInMs: 300000 } // 5 minutes
     )
 
     if (restoredKey) {
       core.info(`Successfully restored cache from ${restoredKey}`)
 
-      if (restoredKey === key) {
+      if (cacheHit(restoredKey)) {
         core.saveState(`${name}-cache-hit`, 'true')
       }
     } else {
@@ -103357,6 +103452,30 @@ async function restoreCache(cacheConfig) {
 
     core.endGroup()
   }())
+}
+
+async function restoreCache(cacheConfig) {
+  const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
+  const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
+  const key = `${restoreKey}${hash}`
+  await restoreCacheImpl(
+    cacheConfig, key, [restoreKey],
+    restoredKey => restoredKey === key
+  )
+}
+
+async function restoreDiskCache(cacheConfig) {
+  const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
+
+  // Since disk caches get updated on any change, each run has a unique key.
+  // Therefore it can only be restored by prefix match, rather than exact key match.
+  // When multiple prefix matches exist, the most recent is selected.
+  const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
+  const hashedRestoreKey = `${restoreKey}${hash}-`
+  await restoreCacheImpl(
+    cacheConfig, hashedRestoreKey, [hashedRestoreKey, restoreKey],
+    restoredKey => restoredKey.startsWith(hashedRestoreKey)
+  )
 }
 
 run()

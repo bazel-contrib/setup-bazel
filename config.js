@@ -8,6 +8,7 @@ const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
+const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 
 const homeDir = os.homedir()
 const arch = os.arch()
@@ -147,6 +148,7 @@ module.exports = {
     name: diskCacheName,
     paths: [bazelDisk]
   },
+  maxDiskCacheSize,
   externalCache,
   paths: {
     bazelExternal,

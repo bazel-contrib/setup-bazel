@@ -2,7 +2,6 @@ const fs = require('fs')
 const path = require('path')
 const cache = require('@actions/cache')
 const core = require('@actions/core')
-const github = require('@actions/github')
 const glob = require('@actions/glob')
 const config = require('./config')
 const gc = require('./gc')
@@ -81,7 +80,7 @@ async function saveDiskCache(cacheConfig) {
       // We don't want to follow symlinks as it's extremely slow on macOS.
       { followSymbolicLinks: false }
     )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${github.context.runId}.${github.context.runAttempt}`
+    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${process.env.GITHUB_RUN_ID}.${process.env.GITHUB_RUN_ATTEMPT}`
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

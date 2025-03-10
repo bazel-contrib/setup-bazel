@@ -672,20 +672,12 @@ function saveCacheV2(paths, key, options, enableCrossOsArchive = false) {
                 key,
                 version
             };
-            let signedUploadUrl;
-            try {
-                const response = yield twirpClient.CreateCacheEntry(request);
-                if (!response.ok) {
-                    throw new Error('Response was not ok');
-                }
-                signedUploadUrl = response.signedUploadUrl;
-            }
-            catch (error) {
-                core.debug(`Failed to reserve cache: ${error}`);
+            const response = yield twirpClient.CreateCacheEntry(request);
+            if (!response.ok) {
                 throw new ReserveCacheError(`Unable to reserve cache with key ${key}, another job may be creating this cache.`);
             }
             core.debug(`Attempting to upload cache located at: ${archivePath}`);
-            yield cacheHttpClient.saveCache(cacheId, archivePath, signedUploadUrl, options);
+            yield cacheHttpClient.saveCache(cacheId, archivePath, response.signedUploadUrl, options);
             const finalizeRequest = {
                 key,
                 version,
@@ -102364,7 +102356,7 @@ exports.visitAsync = visitAsync;
 /***/ ((module) => {
 
 "use strict";
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"4.0.2","preview":true,"description":"Actions cache lib","keywords":["github","actions","cache"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/cache","license":"MIT","main":"lib/cache.js","types":"lib/cache.d.ts","directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/cache"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"echo \\"Error: run tests from root\\" && exit 1","tsc":"tsc"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^1.11.1","@actions/exec":"^1.0.1","@actions/glob":"^0.1.0","@actions/http-client":"^2.1.1","@actions/io":"^1.0.1","@azure/abort-controller":"^1.1.0","@azure/ms-rest-js":"^2.6.0","@azure/storage-blob":"^12.13.0","@protobuf-ts/plugin":"^2.9.4","semver":"^6.3.1"},"devDependencies":{"@types/semver":"^6.0.0","typescript":"^5.2.2"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/cache","version":"4.0.1","preview":true,"description":"Actions cache lib","keywords":["github","actions","cache"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/cache","license":"MIT","main":"lib/cache.js","types":"lib/cache.d.ts","directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/cache"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"echo \\"Error: run tests from root\\" && exit 1","tsc":"tsc"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^1.11.1","@actions/exec":"^1.0.1","@actions/glob":"^0.1.0","@actions/http-client":"^2.1.1","@actions/io":"^1.0.1","@azure/abort-controller":"^1.1.0","@azure/ms-rest-js":"^2.6.0","@azure/storage-blob":"^12.13.0","@protobuf-ts/plugin":"^2.9.4","semver":"^6.3.1"},"devDependencies":{"@types/semver":"^6.0.0","typescript":"^5.2.2"}}');
 
 /***/ }),
 
@@ -102427,7 +102419,6 @@ const fs = __nccwpck_require__(9896)
 const path = __nccwpck_require__(6928)
 const cache = __nccwpck_require__(5116)
 const core = __nccwpck_require__(7484)
-const github = __nccwpck_require__(3228)
 const glob = __nccwpck_require__(7206)
 const config = __nccwpck_require__(700)
 const gc = __nccwpck_require__(1724)
@@ -102506,7 +102497,7 @@ async function saveDiskCache(cacheConfig) {
       // We don't want to follow symlinks as it's extremely slow on macOS.
       { followSymbolicLinks: false }
     )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${github.context.runId}.${github.context.runAttempt}`
+    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${post_process.env.GITHUB_RUN_ID}.${post_process.env.GITHUB_RUN_ATTEMPT}`
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

@@ -168,10 +168,6 @@ const path = __nccwpck_require__(6928)
 const core = __nccwpck_require__(7484)
 
 function init(cacheConfig) {
-  if (!cacheConfig.enabled) {
-    return
-  }
-
   core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
   fs.writeFileSync(cacheConfig.path + '.sha256', computeCacheHash(cacheConfig.path))
   core.endGroup()
@@ -179,6 +175,7 @@ function init(cacheConfig) {
 
 function run(cacheConfig) {
   if (!fs.existsSync(cacheConfig.path)) {
+    core.warning(`No ${cacheConfig.name} cache present`)
     return
   }
 
@@ -102467,8 +102464,11 @@ async function saveGcCache(cacheConfig) {
 
   const hash = gc.run(cacheConfig)
 
+  core.startGroup(`Save cache for ${cacheConfig.name}`)
+
   // cache is unchanged
   if (!hash) {
+    core.info(`No changes to ${cacheConfig} cache detected, skipping upload`)
     return
   }
 
@@ -102476,8 +102476,6 @@ async function saveGcCache(cacheConfig) {
   const paths = cacheConfig.paths
 
   try {
-    core.startGroup(`Save cache for ${cacheConfig.name}`)
-
     // cache already exists
     if (await cache.restoreCache(paths, key, [], { lookupOnly: true })) {
       core.info('Cache already exists, skipping upload')
@@ -102489,9 +102487,9 @@ async function saveGcCache(cacheConfig) {
     core.info('Successfully saved cache')
   } catch (error) {
     core.warning(error.stack)
-  } finally {
-    core.endGroup()
   }
+
+  core.endGroup()
 }
 
 async function saveCache(cacheConfig) {

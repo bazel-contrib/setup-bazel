@@ -169,17 +169,17 @@ const core = __nccwpck_require__(7484)
 
 function init(cacheConfig) {
   core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
-  fs.writeFileSync(cacheConfig.path + '.sha256', computeCacheHash(cacheConfig.path))
+  fs.writeFileSync(cacheConfig.paths[0] + '.sha256', computeCacheHash(cacheConfig.paths[0]))
   core.endGroup()
 }
 
 function run(cacheConfig) {
-  if (!fs.existsSync(cacheConfig.path)) {
+  if (!fs.existsSync(cacheConfig.paths[0])) {
     core.warning(`No ${cacheConfig.name} cache present`)
     return
   }
 
-  const files = fs.readdirSync(cacheConfig.path, { withFileTypes: true, recursive: true })
+  const files = fs.readdirSync(cacheConfig.paths[0], { withFileTypes: true, recursive: true })
     .filter(d => d.isFile())
     .map(d => {
       const file = path.join(d.path, d.name)
@@ -208,18 +208,18 @@ function run(cacheConfig) {
 
 function cacheChanged(cacheConfig) {
   core.startGroup(`Checking ${cacheConfig.name} cache for changes`)
-  const hash = computeCacheHash(cacheConfig.path)
-  const changed = fs.readFileSync(cacheConfig.path + '.sha256') != hash
+  const hash = computeCacheHash(cacheConfig.paths[0])
+  const changed = fs.readFileSync(cacheConfig.paths[0] + '.sha256') != hash
   core.info(`Cache has changes: ${changed}`)
   core.endGroup()
   return changed ? hash : undefined
 }
 
-function computeCacheHash(path) {
+function computeCacheHash(cachePath) {
   let hash = crypto.createHash('sha256')
 
-  if (fs.existsSync(path)) {
-    const files = fs.readdirSync(path, { withFileTypes: true, recursive: true })
+  if (fs.existsSync(cachePath)) {
+    const files = fs.readdirSync(cachePath, { withFileTypes: true, recursive: true })
       .filter(d => d.isFile())
       .map(d => d.path)
       .sort()

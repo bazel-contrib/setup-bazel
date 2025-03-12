@@ -142,10 +142,6 @@ async function restoreExternalCaches(cacheConfig) {
 }
 
 async function restoreCacheImpl(cacheConfig, primaryKey, restoreKeys, cacheHit) {
-  if (!cacheConfig.enabled) {
-    return
-  }
-
   const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
   await setTimeout(delay, async function () {
     core.startGroup(`Restore cache for ${cacheConfig.name}`)
@@ -175,6 +171,10 @@ async function restoreCacheImpl(cacheConfig, primaryKey, restoreKeys, cacheHit) 
 }
 
 async function restoreCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
   const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
   const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
   const key = `${restoreKey}${hash}`
@@ -185,6 +185,10 @@ async function restoreCache(cacheConfig) {
 }
 
 async function restoreGcCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
   // Since disk caches get updated on any change, each run has a unique key.
   // Therefore it can only be restored by prefix match, rather than exact key match.
   // When multiple prefix matches exist, the most recent is selected.

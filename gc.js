@@ -4,10 +4,6 @@ const path = require('path')
 const core = require('@actions/core')
 
 function init(cacheConfig) {
-  if (!cacheConfig.enabled) {
-    return
-  }
-
   core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
   fs.writeFileSync(cacheConfig.path + '.sha256', computeCacheHash(cacheConfig.path))
   core.endGroup()
@@ -15,6 +11,7 @@ function init(cacheConfig) {
 
 function run(cacheConfig) {
   if (!fs.existsSync(cacheConfig.path)) {
+    core.warning(`No ${cacheConfig.name} cache present`)
     return
   }
 

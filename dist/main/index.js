@@ -11,10 +11,10 @@ const core = __nccwpck_require__(7484)
 const github = __nccwpck_require__(3228)
 
 const bazeliskVersion = core.getInput('bazelisk-version')
+const cachePrefix = core.getInput('cache-prefix')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
-const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 
 const homeDir = os.homedir()
 const arch = os.arch()
@@ -48,32 +48,19 @@ switch (platform) {
     break
 }
 
-const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}`
+const baseCacheKey = `setup-bazel-${cacheVersion}-${cachePrefix}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
-const diskCacheConfig = core.getInput('disk-cache')
-const diskCacheEnabled = diskCacheConfig !== 'false'
-let diskCacheName = 'disk'
+const diskCacheEnabled = core.getInput('disk-cache')
+const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 if (diskCacheEnabled) {
   bazelrc.push(`common --disk_cache=${bazelDisk}`)
-  if (diskCacheName !== 'true') {
-    diskCacheName = `${diskCacheName}-${diskCacheConfig}`
-  }
 }
 
-const repositoryCacheConfig = core.getInput('repository-cache')
-const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
-let repositoryCacheFiles = [
-  `${moduleRoot}/MODULE.bazel`,
-  `${moduleRoot}/WORKSPACE.bazel`,
-  `${moduleRoot}/WORKSPACE.bzlmod`,
-  `${moduleRoot}/WORKSPACE`
-]
+const repositoryCacheEnabled = core.getInput('repository-cache')
+const maxRepositoryCacheSize = core.getInput('max-repository-cache-size')
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
-  if (repositoryCacheConfig !== 'true') {
-    repositoryCacheFiles = Array(repositoryCacheConfig).flat()
-  }
 }
 
 const googleCredentials = core.getInput('google-credentials')
@@ -146,12 +133,8 @@ module.exports = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
-    files: [
-      ...repositoryCacheFiles,
-      `${moduleRoot}/**/BUILD.bazel`,
-      `${moduleRoot}/**/BUILD`
-    ],
-    name: diskCacheName,
+    maxSize: maxDiskCacheSize,
+    name: 'disk',
     paths: [bazelDisk]
   },
   maxDiskCacheSize,
@@ -167,7 +150,7 @@ module.exports = {
   },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
-    files: repositoryCacheFiles,
+    maxSize: maxRepositoryCacheSize,
     name: 'repository',
     paths: [bazelRepository]
   },
@@ -183,27 +166,23 @@ const crypto = __nccwpck_require__(6982)
 const fs = __nccwpck_require__(9896)
 const path = __nccwpck_require__(6928)
 const core = __nccwpck_require__(7484)
-const config = __nccwpck_require__(700)
 
-const diskCachePath = config.diskCache.paths[0]
-const diskCacheHash = diskCachePath + '.sha256'
-
-function init() {
-  if (!config.diskCache.enabled) {
+function init(cacheConfig) {
+  if (!cacheConfig.enabled) {
     return
   }
 
-  core.startGroup("Computing initial disk cache hash")
-  fs.writeFileSync(diskCacheHash, computeDiskCacheHash())
+  core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
+  fs.writeFileSync(cacheConfig.path + '.sha256', computeCacheHash(cacheConfig.path))
   core.endGroup()
 }
 
-function run() {
-  if (!fs.existsSync(diskCachePath)) {
+function run(cacheConfig) {
+  if (!fs.existsSync(cacheConfig.path)) {
     return
   }
 
-  const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+  const files = fs.readdirSync(cacheConfig.path, { withFileTypes: true, recursive: true })
     .filter(d => d.isFile())
     .map(d => {
       const file = path.join(d.path, d.name)
@@ -212,34 +191,38 @@ function run() {
     })
     .sort((a, b) => b.mtime - a.mtime)
 
-  core.startGroup(`Running disk cache garbage collection`)
-  const deleteThreshold = config.maxDiskCacheSize * 1024 ** 3
+  core.startGroup(`Running ${cacheConfig.name} cache garbage collection`)
+  const deleteThreshold = cacheConfig.maxSize * 1024 ** 3
   let cacheSize = 0
   let reclaimed = 0
   for (const { file, size } of files) {
-    cacheSize += size
-    if (cacheSize >= deleteThreshold) {
+    if (cacheSize + size >= deleteThreshold) {
       fs.unlinkSync(file)
       reclaimed++
+    } else {
+      cacheSize += size
     }
   }
   core.info(`Reclaimed ${reclaimed} files`)
   core.endGroup()
+
+  return cacheChanged(cacheConfig)
 }
 
-function cacheChanged() {
-  core.startGroup(`Checking disk cache for changes`)
-  const changed = fs.readFileSync(diskCacheHash) != computeDiskCacheHash()
+function cacheChanged(cacheConfig) {
+  core.startGroup(`Checking ${cacheConfig.name} cache for changes`)
+  const hash = computeCacheHash(cacheConfig.path)
+  const changed = fs.readFileSync(cacheConfig.path + '.sha256') != hash
   core.info(`Cache has changes: ${changed}`)
   core.endGroup()
-  return changed
+  return changed ? hash : undefined
 }
 
-function computeDiskCacheHash() {
+function computeCacheHash(path) {
   let hash = crypto.createHash('sha256')
 
-  if (fs.existsSync(diskCachePath)) {
-    const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+  if (fs.existsSync(path)) {
+    const files = fs.readdirSync(path, { withFileTypes: true, recursive: true })
       .filter(d => d.isFile())
       .map(d => d.path)
       .sort()
@@ -255,7 +238,6 @@ function computeDiskCacheHash() {
 module.exports = {
   init,
   run,
-  cacheChanged,
 }
 
 
@@ -103296,11 +103278,9 @@ async function setupBazel() {
 
   await setupBazelisk()
   await restoreCache(config.bazeliskCache)
-  await restoreDiskCache(config.diskCache)
-  await restoreCache(config.repositoryCache)
+  await restoreGcCache(config.diskCache)
+  await restoreGcCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
-
-  gc.init()
 }
 
 async function setupBazelisk() {
@@ -103456,18 +103436,17 @@ async function restoreCache(cacheConfig) {
   )
 }
 
-async function restoreDiskCache(cacheConfig) {
-  const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
-
+async function restoreGcCache(cacheConfig) {
   // Since disk caches get updated on any change, each run has a unique key.
   // Therefore it can only be restored by prefix match, rather than exact key match.
   // When multiple prefix matches exist, the most recent is selected.
   const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
-  const hashedRestoreKey = `${restoreKey}${hash}-`
   await restoreCacheImpl(
-    cacheConfig, hashedRestoreKey, [hashedRestoreKey, restoreKey],
+    cacheConfig, restoreKey, [restoreKey],
     restoredKey => restoredKey.startsWith(hashedRestoreKey)
   )
+
+  gc.init(cacheConfig)
 }
 
 run()

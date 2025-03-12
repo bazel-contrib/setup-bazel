@@ -72,7 +72,7 @@ async function saveGcCache(cacheConfig) {
 
   // cache is unchanged
   if (!hash) {
-    core.info(`No changes to ${cacheConfig} cache detected, skipping upload`)
+    core.info(`No changes to ${cacheConfig.name} cache detected, skipping upload`)
     return
   }
 

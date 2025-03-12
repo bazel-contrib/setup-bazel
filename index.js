@@ -26,11 +26,9 @@ async function setupBazel() {
 
   await setupBazelisk()
   await restoreCache(config.bazeliskCache)
-  await restoreDiskCache(config.diskCache)
-  await restoreCache(config.repositoryCache)
+  await restoreGcCache(config.diskCache)
+  await restoreGcCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
-
-  gc.init()
 }
 
 async function setupBazelisk() {
@@ -186,18 +184,17 @@ async function restoreCache(cacheConfig) {
   )
 }
 
-async function restoreDiskCache(cacheConfig) {
-  const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
-
+async function restoreGcCache(cacheConfig) {
   // Since disk caches get updated on any change, each run has a unique key.
   // Therefore it can only be restored by prefix match, rather than exact key match.
   // When multiple prefix matches exist, the most recent is selected.
   const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
-  const hashedRestoreKey = `${restoreKey}${hash}-`
   await restoreCacheImpl(
-    cacheConfig, hashedRestoreKey, [hashedRestoreKey, restoreKey],
+    cacheConfig, restoreKey, [restoreKey],
     restoredKey => restoredKey.startsWith(hashedRestoreKey)
   )
+
+  gc.init(cacheConfig)
 }
 
 run()

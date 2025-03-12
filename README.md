@@ -85,31 +85,9 @@ Default `""`.
 
 ### `disk-cache`
 
-Enable [`disk_cache`][2] and store it on GitHub based on contents of `BUILD` files.
-
-You can also pass a string to use as a cache key to separate caches from different workflows.
+Enable [`disk_cache`][2] and store it on GitHub.
 
 Default `false`.
-
-<details>
-  <summary>Examples</summary>
-
-  #### Share a single disk cache
-
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      disk-cache: true
-  ```
-
-  #### Separate disk caches between workflows
-
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      disk-cache: ${{ github.workflow }}}
-  ```
-</details>
 
 ### `max-disk-cache-size`
 
@@ -213,31 +191,16 @@ Default is one of the following:
 
 ### `repository-cache`
 
-Enable [`repository_cache`][3] and store it on GitHub based on contents of `MODULE.bazel` and `WORKSPACE` files.
-
-You can also pass a file (or list of files) which contents are used to calculate cache key.
+Enable [`repository_cache`][3] and store it on GitHub.
 
 Default `false`.
 
-<details>
-  <summary>Examples</summary>
+### `max-repository-cache-size`
 
-  #### Store a single repository cache
+The maximum size, in GB, allowed for the repository cache.
+Exceeding this size results in garbage collection.
 
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      repository-cache: true
-  ```
-
-  #### Store a repository cache from a custom location
-
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      repository-cache: examples/gem/WORKSPACE
-  ```
-</details>
+Default `1`.
 
 ## Migrating from [`bazelbuild/setup-bazelisk`][6]
 

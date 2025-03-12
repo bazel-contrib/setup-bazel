@@ -5,10 +5,10 @@ const core = require('@actions/core')
 const github = require('@actions/github')
 
 const bazeliskVersion = core.getInput('bazelisk-version')
+const cachePrefix = core.getInput('cache-prefix')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
-const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 
 const homeDir = os.homedir()
 const arch = os.arch()
@@ -42,32 +42,19 @@ switch (platform) {
     break
 }
 
-const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}`
+const baseCacheKey = `setup-bazel-${cacheVersion}-${cachePrefix}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
-const diskCacheConfig = core.getInput('disk-cache')
-const diskCacheEnabled = diskCacheConfig !== 'false'
-let diskCacheName = 'disk'
+const diskCacheEnabled = core.getInput('disk-cache')
+const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 if (diskCacheEnabled) {
   bazelrc.push(`common --disk_cache=${bazelDisk}`)
-  if (diskCacheName !== 'true') {
-    diskCacheName = `${diskCacheName}-${diskCacheConfig}`
-  }
 }
 
-const repositoryCacheConfig = core.getInput('repository-cache')
-const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
-let repositoryCacheFiles = [
-  `${moduleRoot}/MODULE.bazel`,
-  `${moduleRoot}/WORKSPACE.bazel`,
-  `${moduleRoot}/WORKSPACE.bzlmod`,
-  `${moduleRoot}/WORKSPACE`
-]
+const repositoryCacheEnabled = core.getInput('repository-cache')
+const maxRepositoryCacheSize = core.getInput('max-repository-cache-size')
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
-  if (repositoryCacheConfig !== 'true') {
-    repositoryCacheFiles = Array(repositoryCacheConfig).flat()
-  }
 }
 
 const googleCredentials = core.getInput('google-credentials')
@@ -140,12 +127,8 @@ module.exports = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
-    files: [
-      ...repositoryCacheFiles,
-      `${moduleRoot}/**/BUILD.bazel`,
-      `${moduleRoot}/**/BUILD`
-    ],
-    name: diskCacheName,
+    maxSize: maxDiskCacheSize,
+    name: 'disk',
     paths: [bazelDisk]
   },
   maxDiskCacheSize,
@@ -161,7 +144,7 @@ module.exports = {
   },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
-    files: repositoryCacheFiles,
+    maxSize: maxRepositoryCacheSize,
     name: 'repository',
     paths: [bazelRepository]
   },

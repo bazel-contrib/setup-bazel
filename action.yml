@@ -13,6 +13,10 @@ inputs:
     description: Extra contents to write to user .bazelrc
     required: false
     default: ""
+  cache-prefix:
+    description: Key prefix for all caches
+    required: false
+    default: ${{ github.job }}-${{ runner.os }}
   cache-version:
     description: Version of all caches
     required: false
@@ -45,6 +49,10 @@ inputs:
     description: Cache repositories based on MODULE.bazel/WORKSPACE
     required: false
     default: "false"
+  max-repository-cache-size:
+    description: Maximum repository cache size, in GB
+    required: false
+    default: 1
   token:
     description: GitHub token to query Bazelisk releases
     required: false

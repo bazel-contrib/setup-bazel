@@ -2,27 +2,23 @@ const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const core = require('@actions/core')
-const config = require('./config')
 
-const diskCachePath = config.diskCache.paths[0]
-const diskCacheHash = diskCachePath + '.sha256'
-
-function init() {
-  if (!config.diskCache.enabled) {
+function init(cacheConfig) {
+  if (!cacheConfig.enabled) {
     return
   }
 
-  core.startGroup("Computing initial disk cache hash")
-  fs.writeFileSync(diskCacheHash, computeDiskCacheHash())
+  core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
+  fs.writeFileSync(cacheConfig.path + '.sha256', computeCacheHash(cacheConfig.path))
   core.endGroup()
 }
 
-function run() {
-  if (!fs.existsSync(diskCachePath)) {
+function run(cacheConfig) {
+  if (!fs.existsSync(cacheConfig.path)) {
     return
   }
 
-  const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+  const files = fs.readdirSync(cacheConfig.path, { withFileTypes: true, recursive: true })
     .filter(d => d.isFile())
     .map(d => {
       const file = path.join(d.path, d.name)
@@ -31,8 +27,8 @@ function run() {
     })
     .sort((a, b) => b.mtime - a.mtime)
 
-  core.startGroup(`Running disk cache garbage collection`)
-  const deleteThreshold = config.maxDiskCacheSize * 1024 ** 3
+  core.startGroup(`Running ${cacheConfig.name} cache garbage collection`)
+  const deleteThreshold = cacheConfig.maxSize * 1024 ** 3
   let cacheSize = 0
   let reclaimed = 0
   for (const { file, size } of files) {
@@ -44,21 +40,24 @@ function run() {
   }
   core.info(`Reclaimed ${reclaimed} files`)
   core.endGroup()
+
+  return cacheChanged(cacheConfig)
 }
 
-function cacheChanged() {
-  core.startGroup(`Checking disk cache for changes`)
-  const changed = fs.readFileSync(diskCacheHash) != computeDiskCacheHash()
+function cacheChanged(cacheConfig) {
+  core.startGroup(`Checking ${cacheConfig.name} cache for changes`)
+  const hash = computeCacheHash(cacheConfig.path)
+  const changed = fs.readFileSync(cacheConfig.path + '.sha256') != hash
   core.info(`Cache has changes: ${changed}`)
   core.endGroup()
-  return changed
+  return changed ? hash : undefined
 }
 
-function computeDiskCacheHash() {
+function computeCacheHash(path) {
   let hash = crypto.createHash('sha256')
 
-  if (fs.existsSync(diskCachePath)) {
-    const files = fs.readdirSync(diskCachePath, { withFileTypes: true, recursive: true })
+  if (fs.existsSync(path)) {
+    const files = fs.readdirSync(path, { withFileTypes: true, recursive: true })
       .filter(d => d.isFile())
       .map(d => d.path)
       .sort()
@@ -74,5 +73,4 @@ function computeDiskCacheHash() {
 module.exports = {
   init,
   run,
-  cacheChanged,
 }

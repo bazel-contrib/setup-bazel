@@ -15,8 +15,8 @@ async function run() {
 
 async function saveCaches() {
   await saveCache(config.bazeliskCache)
-  await saveDiskCache(config.diskCache)
-  await saveCache(config.repositoryCache)
+  await saveGcCache(config.diskCache)
+  await saveGcCache(config.repositoryCache)
   await saveExternalCaches(config.externalCache)
 }
 
@@ -61,26 +61,30 @@ async function saveExternalCaches(cacheConfig) {
   }
 }
 
-async function saveDiskCache(cacheConfig) {
+async function saveGcCache(cacheConfig) {
   if (!cacheConfig.enabled) {
     return
   }
 
-  gc.run()
-  if (!gc.cacheChanged()) {
+  const hash = gc.run(cacheConfig)
+
+  // cache is unchanged
+  if (!hash) {
     return
   }
 
+  const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+  const paths = cacheConfig.paths
+
   try {
     core.startGroup(`Save cache for ${cacheConfig.name}`)
-    const paths = cacheConfig.paths
-    const hash = await glob.hashFiles(
-      cacheConfig.files.join('\n'),
-      undefined,
-      // We don't want to follow symlinks as it's extremely slow on macOS.
-      { followSymbolicLinks: false }
-    )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}-${process.env.GITHUB_RUN_ID}.${process.env.GITHUB_RUN_ATTEMPT}`
+
+    // cache already exists
+    if (await cache.restoreCache(paths, key, [], { lookupOnly: true })) {
+      core.info('Cache already exists, skipping upload')
+      return
+    }
+
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

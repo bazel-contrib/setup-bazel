@@ -32,10 +32,11 @@ function run(cacheConfig) {
   let cacheSize = 0
   let reclaimed = 0
   for (const { file, size } of files) {
-    cacheSize += size
-    if (cacheSize >= deleteThreshold) {
+    if (cacheSize + size >= deleteThreshold) {
       fs.unlinkSync(file)
       reclaimed++
+    } else {
+      cacheSize += size
     }
   }
   core.info(`Reclaimed ${reclaimed} files`)

@@ -81,7 +81,7 @@ async function saveGcCache(cacheConfig) {
 
   try {
     // cache already exists
-    if (await cache.restoreCache(paths, key, [], { lookupOnly: true })) {
+    if ((await cache.restoreCache(paths, key, [], { lookupOnly: true })) === key) {
       core.info('Cache already exists, skipping upload')
       return
     }

@@ -45,13 +45,13 @@ switch (platform) {
 const baseCacheKey = `setup-bazel-${cacheVersion}-${cachePrefix}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
-const diskCacheEnabled = core.getInput('disk-cache')
+const diskCacheEnabled = core.getBooleanInput('disk-cache')
 const maxDiskCacheSize = core.getInput('max-disk-cache-size')
 if (diskCacheEnabled) {
   bazelrc.push(`common --disk_cache=${bazelDisk}`)
 }
 
-const repositoryCacheEnabled = core.getInput('repository-cache')
+const repositoryCacheEnabled = core.getBooleanInput('repository-cache')
 const maxRepositoryCacheSize = core.getInput('max-repository-cache-size')
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)

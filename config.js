@@ -131,7 +131,6 @@ module.exports = {
     name: 'disk',
     paths: [bazelDisk]
   },
-  maxDiskCacheSize,
   externalCache,
   paths: {
     bazelExternal,

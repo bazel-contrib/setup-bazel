@@ -83,6 +83,32 @@ Default `""`.
   ```
 </details>
 
+### `cache-prefix`
+
+Specify a prefix used for all caches.
+
+Default `${{ github.job }}-${{ runner.os }}`
+
+<details>
+  <summary>Examples</summary>
+
+  #### Using a job matrix
+
+  ```yaml
+  my-job:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        mode: [dbg, opt]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          cache-prefix: ${{ matrix.job }}-${{ matrix.os }}-${{ matrix.mode }}
+  ```
+</details>
+
 ### `disk-cache`
 
 Enable [`disk_cache`][2] and store it on GitHub.

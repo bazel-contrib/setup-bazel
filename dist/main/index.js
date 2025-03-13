@@ -103441,10 +103441,10 @@ async function restoreGcCache(cacheConfig) {
   // Since disk caches get updated on any change, each run has a unique key.
   // Therefore it can only be restored by prefix match, rather than exact key match.
   // When multiple prefix matches exist, the most recent is selected.
-  const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
+  const key = `${config.baseCacheKey}-${cacheConfig.name}-`
   await restoreCacheImpl(
-    cacheConfig, restoreKey, [restoreKey],
-    restoredKey => restoredKey.startsWith(hashedRestoreKey)
+    cacheConfig, key, [],
+    restoredKey => restoredKey.startsWith(key)
   )
 
   gc.init(cacheConfig)

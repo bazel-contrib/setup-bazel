@@ -137,7 +137,6 @@ module.exports = {
     name: 'disk',
     paths: [bazelDisk]
   },
-  maxDiskCacheSize,
   externalCache,
   paths: {
     bazelExternal,
@@ -169,7 +168,12 @@ const core = __nccwpck_require__(7484)
 
 function init(cacheConfig) {
   core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
-  fs.writeFileSync(cacheConfig.paths[0] + '.sha256', computeCacheHash(cacheConfig.paths[0]))
+  const hashFile = cacheConfig.paths[0] + '.sha256'
+  const parentDir = path.dirname(hashFile)
+  if (!fs.existsSync(parentDir)) {
+    fs.mkdirSync(parentDir, { recursive: true })
+  }
+  fs.writeFileSync(hashFile, computeCacheHash(cacheConfig.paths[0]))
   core.endGroup()
 }
 

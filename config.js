@@ -45,14 +45,28 @@ switch (platform) {
 const baseCacheKey = `setup-bazel-${cacheVersion}-${cachePrefix}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
-const diskCacheEnabled = core.getBooleanInput('disk-cache')
-const maxDiskCacheSize = core.getInput('max-disk-cache-size')
+let diskCacheEnabled
+try {
+  diskCacheEnabled = core.getBooleanInput('disk-cache')
+} catch (error) {
+  core.error("`disk-cache` now only accepts a boolean, use `cache-prefix` to provide unique cache keys")
+  core.error("https://github.com/bazel-contrib/setup-bazel/releases/tag/0.15.0")
+  throw error
+}
+const diskCacheMaxSize = core.getInput('disk-cache-max-size')
 if (diskCacheEnabled) {
   bazelrc.push(`common --disk_cache=${bazelDisk}`)
 }
 
-const repositoryCacheEnabled = core.getBooleanInput('repository-cache')
-const maxRepositoryCacheSize = core.getInput('max-repository-cache-size')
+let repositoryCacheEnabled
+try {
+  repositoryCacheEnabled = core.getBooleanInput('repository-cache')
+} catch (error) {
+  core.error("`repository-cache` now only accepts a boolean, it is no longer necessary to provide a file path")
+  core.error("https://github.com/bazel-contrib/setup-bazel/releases/tag/0.15.0")
+  throw error
+}
+const repositoryCacheMaxSize = core.getInput('repository-cache-max-size')
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
 }
@@ -127,7 +141,7 @@ module.exports = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
-    maxSize: maxDiskCacheSize,
+    maxSize: diskCacheMaxSize,
     name: 'disk',
     paths: [bazelDisk]
   },
@@ -143,7 +157,7 @@ module.exports = {
   },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
-    maxSize: maxRepositoryCacheSize,
+    maxSize: repositoryCacheMaxSize,
     name: 'repository',
     paths: [bazelRepository]
   },

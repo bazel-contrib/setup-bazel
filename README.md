@@ -115,7 +115,7 @@ Enable [`disk_cache`][2] and store it on GitHub.
 
 Default `false`.
 
-### `max-disk-cache-size`
+### `disk-cache-max-size`
 
 The maximum size, in GB, allowed for the disk cache.
 Exceeding this size results in garbage collection.
@@ -221,7 +221,7 @@ Enable [`repository_cache`][3] and store it on GitHub.
 
 Default `false`.
 
-### `max-repository-cache-size`
+### `repository-cache-max-size`
 
 The maximum size, in GB, allowed for the repository cache.
 Exceeding this size results in garbage collection.

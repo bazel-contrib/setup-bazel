@@ -4,6 +4,7 @@ const cache = require('@actions/cache')
 const core = require('@actions/core')
 const glob = require('@actions/glob')
 const config = require('./config')
+const gc = require('./gc')
 const { getFolderSize } = require('./util')
 const process = require('node:process');
 
@@ -14,8 +15,8 @@ async function run() {
 
 async function saveCaches() {
   await saveCache(config.bazeliskCache)
-  await saveCache(config.diskCache)
-  await saveCache(config.repositoryCache)
+  await saveGcCache(config.diskCache)
+  await saveGcCache(config.repositoryCache)
   await saveExternalCaches(config.externalCache)
 }
 
@@ -58,6 +59,41 @@ async function saveExternalCaches(cacheConfig) {
       paths: [path]
     })
   }
+}
+
+async function saveGcCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  const hash = gc.run(cacheConfig)
+
+  core.startGroup(`Save cache for ${cacheConfig.name}`)
+
+  // cache is unchanged
+  if (!hash) {
+    core.info(`No changes to ${cacheConfig.name} cache detected, skipping upload`)
+    return
+  }
+
+  const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+  const paths = cacheConfig.paths
+
+  try {
+    // cache already exists
+    if ((await cache.restoreCache(paths, key, [], { lookupOnly: true })) === key) {
+      core.info('Cache already exists, skipping upload')
+      return
+    }
+
+    core.debug(`Attempting to save ${paths} cache to ${key}`)
+    await cache.saveCache(paths, key)
+    core.info('Successfully saved cache')
+  } catch (error) {
+    core.warning(error.stack)
+  }
+
+  core.endGroup()
 }
 
 async function saveCache(cacheConfig) {

@@ -83,33 +83,44 @@ Default `""`.
   ```
 </details>
 
-### `disk-cache`
+### `cache-prefix`
 
-Enable [`disk_cache`][2] and store it on GitHub based on contents of `BUILD` files.
+Specify a prefix used for all caches.
 
-You can also pass a string to use as a cache key to separate caches from different workflows.
-
-Default `false`.
+Default `${{ github.job }}-${{ runner.os }}`
 
 <details>
   <summary>Examples</summary>
 
-  #### Share a single disk cache
+  #### Using a job matrix
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      disk-cache: true
-  ```
-
-  #### Separate disk caches between workflows
-
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      disk-cache: ${{ github.workflow }}}
+  my-job:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        mode: [dbg, opt]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          cache-prefix: ${{ matrix.job }}-${{ matrix.os }}-${{ matrix.mode }}
   ```
 </details>
+
+### `disk-cache`
+
+Enable [`disk_cache`][2] and store it on GitHub.
+
+Default `false`.
+
+### `disk-cache-max-size`
+
+The maximum size, in GB, allowed for the disk cache.
+Exceeding this size results in garbage collection.
+
+Default `5`.
 
 ### `external-cache`
 
@@ -206,31 +217,16 @@ Default is one of the following:
 
 ### `repository-cache`
 
-Enable [`repository_cache`][3] and store it on GitHub based on contents of `MODULE.bazel` and `WORKSPACE` files.
-
-You can also pass a file (or list of files) which contents are used to calculate cache key.
+Enable [`repository_cache`][3] and store it on GitHub.
 
 Default `false`.
 
-<details>
-  <summary>Examples</summary>
+### `repository-cache-max-size`
 
-  #### Store a single repository cache
+The maximum size, in GB, allowed for the repository cache.
+Exceeding this size results in garbage collection.
 
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      repository-cache: true
-  ```
-
-  #### Store a repository cache from a custom location
-
-  ```yaml
-  - uses: bazel-contrib/setup-bazel@0.14.0
-    with:
-      repository-cache: examples/gem/WORKSPACE
-  ```
-</details>
+Default `1`.
 
 ## Migrating from [`bazelbuild/setup-bazelisk`][6]
 

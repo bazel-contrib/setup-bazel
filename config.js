@@ -5,6 +5,7 @@ const core = require('@actions/core')
 const github = require('@actions/github')
 
 const bazeliskVersion = core.getInput('bazelisk-version')
+const cachePrefix = core.getInput('cache-prefix')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
@@ -41,32 +42,33 @@ switch (platform) {
     break
 }
 
-const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}`
+const baseCacheKey = `setup-bazel-${cacheVersion}-${cachePrefix}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
-const diskCacheConfig = core.getInput('disk-cache')
-const diskCacheEnabled = diskCacheConfig !== 'false'
-let diskCacheName = 'disk'
+let diskCacheEnabled
+try {
+  diskCacheEnabled = core.getBooleanInput('disk-cache')
+} catch (error) {
+  core.error("`disk-cache` now only accepts a boolean, use `cache-prefix` to provide unique cache keys")
+  core.error("https://github.com/bazel-contrib/setup-bazel/releases/tag/0.15.0")
+  throw error
+}
+const diskCacheMaxSize = core.getInput('disk-cache-max-size')
 if (diskCacheEnabled) {
   bazelrc.push(`common --disk_cache=${bazelDisk}`)
-  if (diskCacheName !== 'true') {
-    diskCacheName = `${diskCacheName}-${diskCacheConfig}`
-  }
 }
 
-const repositoryCacheConfig = core.getInput('repository-cache')
-const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
-let repositoryCacheFiles = [
-  `${moduleRoot}/MODULE.bazel`,
-  `${moduleRoot}/WORKSPACE.bazel`,
-  `${moduleRoot}/WORKSPACE.bzlmod`,
-  `${moduleRoot}/WORKSPACE`
-]
+let repositoryCacheEnabled
+try {
+  repositoryCacheEnabled = core.getBooleanInput('repository-cache')
+} catch (error) {
+  core.error("`repository-cache` now only accepts a boolean, it is no longer necessary to provide a file path")
+  core.error("https://github.com/bazel-contrib/setup-bazel/releases/tag/0.15.0")
+  throw error
+}
+const repositoryCacheMaxSize = core.getInput('repository-cache-max-size')
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
-  if (repositoryCacheConfig !== 'true') {
-    repositoryCacheFiles = Array(repositoryCacheConfig).flat()
-  }
 }
 
 const googleCredentials = core.getInput('google-credentials')
@@ -139,12 +141,8 @@ module.exports = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
-    files: [
-      ...repositoryCacheFiles,
-      `${moduleRoot}/**/BUILD.bazel`,
-      `${moduleRoot}/**/BUILD`
-    ],
-    name: diskCacheName,
+    maxSize: diskCacheMaxSize,
+    name: 'disk',
     paths: [bazelDisk]
   },
   externalCache,
@@ -159,7 +157,7 @@ module.exports = {
   },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
-    files: repositoryCacheFiles,
+    maxSize: repositoryCacheMaxSize,
     name: 'repository',
     paths: [bazelRepository]
   },

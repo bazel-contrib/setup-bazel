@@ -6,6 +6,7 @@ const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
+const gc = require('./gc')
 
 async function run() {
   try {
@@ -25,8 +26,8 @@ async function setupBazel() {
 
   await setupBazelisk()
   await restoreCache(config.bazeliskCache)
-  await restoreCache(config.diskCache)
-  await restoreCache(config.repositoryCache)
+  await restoreGcCache(config.diskCache)
+  await restoreGcCache(config.repositoryCache)
   await restoreExternalCaches(config.externalCache)
 }
 
@@ -140,32 +141,25 @@ async function restoreExternalCaches(cacheConfig) {
   }
 }
 
-async function restoreCache(cacheConfig) {
-  if (!cacheConfig.enabled) {
-    return
-  }
-
+async function restoreCacheImpl(cacheConfig, primaryKey, restoreKeys, cacheHit) {
   const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
   await setTimeout(delay, async function () {
     core.startGroup(`Restore cache for ${cacheConfig.name}`)
 
-    const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const name = cacheConfig.name
     const paths = cacheConfig.paths
-    const restoreKey = `${config.baseCacheKey}-${name}-`
-    const key = `${restoreKey}${hash}`
 
-    core.debug(`Attempting to restore ${name} cache from ${key}`)
+    core.debug(`Attempting to restore ${name} cache from ${primaryKey}`)
 
     const restoredKey = await cache.restoreCache(
-      paths, key, [restoreKey],
+      paths, primaryKey, restoreKeys,
       { segmentTimeoutInMs: 300000 } // 5 minutes
     )
 
     if (restoredKey) {
       core.info(`Successfully restored cache from ${restoredKey}`)
 
-      if (restoredKey === key) {
+      if (cacheHit(restoredKey)) {
         core.saveState(`${name}-cache-hit`, 'true')
       }
     } else {
@@ -174,6 +168,37 @@ async function restoreCache(cacheConfig) {
 
     core.endGroup()
   }())
+}
+
+async function restoreCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
+  const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
+  const key = `${restoreKey}${hash}`
+  await restoreCacheImpl(
+    cacheConfig, key, [restoreKey],
+    restoredKey => restoredKey === key
+  )
+}
+
+async function restoreGcCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  // Since disk caches get updated on any change, each run has a unique key.
+  // Therefore it can only be restored by prefix match, rather than exact key match.
+  // When multiple prefix matches exist, the most recent is selected.
+  const key = `${config.baseCacheKey}-${cacheConfig.name}-`
+  await restoreCacheImpl(
+    cacheConfig, key, [],
+    restoredKey => restoredKey.startsWith(key)
+  )
+
+  gc.init(cacheConfig)
 }
 
 run()

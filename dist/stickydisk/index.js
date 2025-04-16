@@ -25884,66 +25884,75 @@ module.exports = {
 // https://www.npmjs.com/package/get-folder-size
 // Adapted for CommonJS and synchronous Filesystem calls.
 
-const fs = __nccwpck_require__(9896)
-const path = __nccwpck_require__(6928)
-const { createClient } = __nccwpck_require__(4673)
-const { createGrpcTransport } = __nccwpck_require__(4506)
-const { StickyDiskService } = __nccwpck_require__(7334)
+const fs = __nccwpck_require__(9896);
+const path = __nccwpck_require__(6928);
+const { createClient } = __nccwpck_require__(4673);
+const { createGrpcTransport } = __nccwpck_require__(4506);
+const {
+  StickyDiskService,
+} = __nccwpck_require__(7334);
 
 function createStickyDiskClient() {
+  const port = process.env.BLACKSMITH_STICKY_DISK_GRPC_PORT || "5557";
   const transport = createGrpcTransport({
-    baseUrl: 'http://192.168.127.1:5557',
-    httpVersion: '2'
+    baseUrl: `http://192.168.127.1:${port}`,
+    httpVersion: "2",
   });
 
   return createClient(StickyDiskService, transport);
 }
 
 async function getFolderSize(rootItemPath, options = {}) {
-  const fileSizes = new Map()
+  const fileSizes = new Map();
 
-  await processItem(rootItemPath)
+  await processItem(rootItemPath);
 
   async function processItem(itemPath) {
-    if (options.ignore?.test(itemPath)) return
+    if (options.ignore?.test(itemPath)) return;
 
-    const stats = lstatSync(itemPath, { bigint: true })
-    if (typeof stats !== 'object') return
+    const stats = lstatSync(itemPath, { bigint: true });
+    if (typeof stats !== "object") return;
 
-    fileSizes.set(stats.ino, stats.size)
+    fileSizes.set(stats.ino, stats.size);
 
     if (stats.isDirectory()) {
-      const directoryItems = fs.readdirSync(itemPath)
-      if (typeof directoryItems !== 'object') return
+      const directoryItems = fs.readdirSync(itemPath);
+      if (typeof directoryItems !== "object") return;
       await Promise.all(
-        directoryItems.map(directoryItem =>
+        directoryItems.map((directoryItem) =>
           processItem(path.join(itemPath, directoryItem))
         )
-      )
+      );
     }
   }
 
-  let folderSize = Array.from(fileSizes.values()).reduce((total, fileSize) => total + fileSize, 0n)
+  let folderSize = Array.from(fileSizes.values()).reduce(
+    (total, fileSize) => total + fileSize,
+    0n
+  );
 
   if (!options.bigint) {
     if (folderSize > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new RangeError('The folder size is too large to return as a Number. You can instruct this package to return a BigInt instead.')
+      throw new RangeError(
+        "The folder size is too large to return as a Number. You can instruct this package to return a BigInt instead."
+      );
     }
-    folderSize = Number(folderSize)
+    folderSize = Number(folderSize);
   }
 
-  return folderSize
+  return folderSize;
 }
 
 function lstatSync(path, opts) {
   try {
-    return fs.lstatSync(path, opts)
+    return fs.lstatSync(path, opts);
   } catch (error) {
-    return
+    return;
   }
 }
 
-module.exports = { createStickyDiskClient, getFolderSize, lstatSync }
+module.exports = { createStickyDiskClient, getFolderSize, lstatSync };
+
 
 /***/ }),
 

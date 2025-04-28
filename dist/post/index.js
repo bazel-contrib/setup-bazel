@@ -11,6 +11,7 @@ const core = __nccwpck_require__(7484)
 const github = __nccwpck_require__(3228)
 
 const bazeliskVersion = core.getInput('bazelisk-version')
+const cachePrefix = core.getInput('cache-prefix')
 const cacheVersion = core.getInput('cache-version')
 const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
@@ -47,32 +48,33 @@ switch (platform) {
     break
 }
 
-const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}`
+const baseCacheKey = `setup-bazel-${cacheVersion}-${cachePrefix}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
-const diskCacheConfig = core.getInput('disk-cache')
-const diskCacheEnabled = diskCacheConfig !== 'false'
-let diskCacheName = 'disk'
+let diskCacheEnabled
+try {
+  diskCacheEnabled = core.getBooleanInput('disk-cache')
+} catch (error) {
+  core.error("`disk-cache` now only accepts a boolean, use `cache-prefix` to provide unique cache keys")
+  core.error("https://github.com/bazel-contrib/setup-bazel/releases/tag/0.15.0")
+  throw error
+}
+const diskCacheMaxSize = core.getInput('disk-cache-max-size')
 if (diskCacheEnabled) {
   bazelrc.push(`common --disk_cache=${bazelDisk}`)
-  if (diskCacheName !== 'true') {
-    diskCacheName = `${diskCacheName}-${diskCacheConfig}`
-  }
 }
 
-const repositoryCacheConfig = core.getInput('repository-cache')
-const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
-let repositoryCacheFiles = [
-  `${moduleRoot}/MODULE.bazel`,
-  `${moduleRoot}/WORKSPACE.bazel`,
-  `${moduleRoot}/WORKSPACE.bzlmod`,
-  `${moduleRoot}/WORKSPACE`
-]
+let repositoryCacheEnabled
+try {
+  repositoryCacheEnabled = core.getBooleanInput('repository-cache')
+} catch (error) {
+  core.error("`repository-cache` now only accepts a boolean, it is no longer necessary to provide a file path")
+  core.error("https://github.com/bazel-contrib/setup-bazel/releases/tag/0.15.0")
+  throw error
+}
+const repositoryCacheMaxSize = core.getInput('repository-cache-max-size')
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
-  if (repositoryCacheConfig !== 'true') {
-    repositoryCacheFiles = Array(repositoryCacheConfig).flat()
-  }
 }
 
 const googleCredentials = core.getInput('google-credentials')
@@ -145,12 +147,8 @@ module.exports = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
-    files: [
-      ...repositoryCacheFiles,
-      `${moduleRoot}/**/BUILD.bazel`,
-      `${moduleRoot}/**/BUILD`
-    ],
-    name: diskCacheName,
+    maxSize: diskCacheMaxSize,
+    name: 'disk',
     paths: [bazelDisk]
   },
   externalCache,
@@ -165,10 +163,96 @@ module.exports = {
   },
   repositoryCache: {
     enabled: repositoryCacheEnabled,
-    files: repositoryCacheFiles,
+    maxSize: repositoryCacheMaxSize,
     name: 'repository',
     paths: [bazelRepository]
   },
+}
+
+
+/***/ }),
+
+/***/ 1724:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const crypto = __nccwpck_require__(6982)
+const fs = __nccwpck_require__(9896)
+const path = __nccwpck_require__(6928)
+const core = __nccwpck_require__(7484)
+
+function init(cacheConfig) {
+  core.startGroup(`Computing initial ${cacheConfig.name} cache hash`)
+  const hashFile = cacheConfig.paths[0] + '.sha256'
+  const parentDir = path.dirname(hashFile)
+  if (!fs.existsSync(parentDir)) {
+    fs.mkdirSync(parentDir, { recursive: true })
+  }
+  fs.writeFileSync(hashFile, computeCacheHash(cacheConfig.paths[0]))
+  core.endGroup()
+}
+
+function run(cacheConfig) {
+  if (!fs.existsSync(cacheConfig.paths[0])) {
+    core.warning(`No ${cacheConfig.name} cache present`)
+    return
+  }
+
+  const files = fs.readdirSync(cacheConfig.paths[0], { withFileTypes: true, recursive: true })
+    .filter(d => d.isFile())
+    .map(d => {
+      const file = path.join(d.path, d.name)
+      const { mtime, size} = fs.statSync(file)
+      return { file, mtime, size }
+    })
+    .sort((a, b) => b.mtime - a.mtime)
+
+  core.startGroup(`Running ${cacheConfig.name} cache garbage collection`)
+  const deleteThreshold = cacheConfig.maxSize * 1024 ** 3
+  let cacheSize = 0
+  let reclaimed = 0
+  for (const { file, size } of files) {
+    if (cacheSize + size >= deleteThreshold) {
+      fs.unlinkSync(file)
+      reclaimed++
+    } else {
+      cacheSize += size
+    }
+  }
+  core.info(`Reclaimed ${reclaimed} files`)
+  core.endGroup()
+
+  return cacheChanged(cacheConfig)
+}
+
+function cacheChanged(cacheConfig) {
+  core.startGroup(`Checking ${cacheConfig.name} cache for changes`)
+  const hash = computeCacheHash(cacheConfig.paths[0])
+  const changed = fs.readFileSync(cacheConfig.paths[0] + '.sha256') != hash
+  core.info(`Cache has changes: ${changed}`)
+  core.endGroup()
+  return changed ? hash : undefined
+}
+
+function computeCacheHash(cachePath) {
+  let hash = crypto.createHash('sha256')
+
+  if (fs.existsSync(cachePath)) {
+    const files = fs.readdirSync(cachePath, { withFileTypes: true, recursive: true })
+      .filter(d => d.isFile())
+      .map(d => d.path)
+      .sort()
+
+    hash.update(files.join('\n'))
+
+    core.info(`Collected ${files.length} files`)
+  }
+
+  return hash.digest('hex')
+}
+
+module.exports = {
+  init,
+  run,
 }
 
 
@@ -102334,6 +102418,7 @@ const cache = __nccwpck_require__(5116)
 const core = __nccwpck_require__(7484)
 const glob = __nccwpck_require__(7206)
 const config = __nccwpck_require__(700)
+const gc = __nccwpck_require__(1724)
 const { getFolderSize } = __nccwpck_require__(642)
 const post_process = __nccwpck_require__(1708);
 
@@ -102344,8 +102429,8 @@ async function run() {
 
 async function saveCaches() {
   await saveCache(config.bazeliskCache)
-  await saveCache(config.diskCache)
-  await saveCache(config.repositoryCache)
+  await saveGcCache(config.diskCache)
+  await saveGcCache(config.repositoryCache)
   await saveExternalCaches(config.externalCache)
 }
 
@@ -102388,6 +102473,41 @@ async function saveExternalCaches(cacheConfig) {
       paths: [path]
     })
   }
+}
+
+async function saveGcCache(cacheConfig) {
+  if (!cacheConfig.enabled) {
+    return
+  }
+
+  const hash = gc.run(cacheConfig)
+
+  core.startGroup(`Save cache for ${cacheConfig.name}`)
+
+  // cache is unchanged
+  if (!hash) {
+    core.info(`No changes to ${cacheConfig.name} cache detected, skipping upload`)
+    return
+  }
+
+  const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+  const paths = cacheConfig.paths
+
+  try {
+    // cache already exists
+    if ((await cache.restoreCache(paths, key, [], { lookupOnly: true })) === key) {
+      core.info('Cache already exists, skipping upload')
+      return
+    }
+
+    core.debug(`Attempting to save ${paths} cache to ${key}`)
+    await cache.saveCache(paths, key)
+    core.info('Successfully saved cache')
+  } catch (error) {
+    core.warning(error.stack)
+  }
+
+  core.endGroup()
 }
 
 async function saveCache(cacheConfig) {

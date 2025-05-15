@@ -16,7 +16,12 @@ const platform = os.platform()
 let bazelOutputBase = core.getInput('output-base')
 if (!bazelOutputBase) {
   if (platform === 'win32') {
-    bazelOutputBase = 'D:/_bazel'
+    // check if GITHUB_WORKSPACE starts with D:
+    if (process.env.GITHUB_WORKSPACE?.toLowerCase()?.startsWith('d:')) {
+      bazelOutputBase = 'D:/_bazel'
+    } else {
+      bazelOutputBase = `C:/_bazel`
+    }
   } else {
     bazelOutputBase = `${homeDir}/.bazel`
   }

@@ -1,11 +1,15 @@
 const fs = require('fs')
 const { setTimeout } = require('timers/promises')
+const { exec } = require('child_process')
+const { promisify } = require('util')
 const core = require('@actions/core')
 const cache = require('@actions/cache')
 const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
 const config = require('./config')
+
+const execAsync = promisify(exec)
 
 async function run() {
   try {
@@ -32,7 +36,12 @@ async function setupBazel() {
 
 async function setupBazelisk() {
   if (config.bazeliskVersion.length == 0) {
-    return
+    if (await isBazelAvailable()) {
+      core.info('Bazel or Bazelisk already available, skipping installation')
+      return
+    }
+    core.info('No bazelisk-version specified and bazel/bazelisk not found. Installing bazelisk v1.26.0.')
+    config.bazeliskVersion = 'v1.26.0'
   }
 
   core.startGroup('Setup Bazelisk')
@@ -44,6 +53,20 @@ async function setupBazelisk() {
   }
   core.addPath(toolPath)
   core.endGroup()
+}
+
+async function isBazelAvailable() {
+  try {
+    await execAsync('bazelisk version')
+    return true
+  } catch (error) {
+    try {
+      await execAsync('bazel version')
+      return true
+    } catch (error) {
+      return false
+    }
+  }
 }
 
 async function downloadBazelisk() {

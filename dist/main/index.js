@@ -103284,6 +103284,7 @@ const cache = __nccwpck_require__(5116)
 const github = __nccwpck_require__(3228)
 const glob = __nccwpck_require__(7206)
 const tc = __nccwpck_require__(3472)
+const exec = __nccwpck_require__(5236)
 const config = __nccwpck_require__(700)
 
 async function run() {
@@ -103311,7 +103312,12 @@ async function setupBazel() {
 
 async function setupBazelisk() {
   if (config.bazeliskVersion.length == 0) {
-    return
+    if (await isBazelAvailable()) {
+      core.info('Bazel or Bazelisk already available, skipping installation')
+      return
+    }
+    core.info('No bazelisk-version specified and bazel/bazelisk not found. Installing bazelisk v1.26.0.')
+    config.bazeliskVersion = 'v1.26.0'
   }
 
   core.startGroup('Setup Bazelisk')
@@ -103323,6 +103329,20 @@ async function setupBazelisk() {
   }
   core.addPath(toolPath)
   core.endGroup()
+}
+
+async function isBazelAvailable() {
+  try {
+    await exec.exec('bazelisk', ['version'], { silent: true })
+    return true
+  } catch (error) {
+    try {
+      await exec.exec('bazel', ['version'], { silent: true })
+      return true
+    } catch (error) {
+      return false
+    }
+  }
 }
 
 async function downloadBazelisk() {

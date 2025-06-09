@@ -103279,16 +103279,13 @@ module.exports = /*#__PURE__*/JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45
 var __webpack_exports__ = {};
 const fs = __nccwpck_require__(9896)
 const { setTimeout: index_setTimeout } = __nccwpck_require__(6460)
-const { exec } = __nccwpck_require__(5317)
-const { promisify } = __nccwpck_require__(9023)
 const core = __nccwpck_require__(7484)
 const cache = __nccwpck_require__(5116)
 const github = __nccwpck_require__(3228)
 const glob = __nccwpck_require__(7206)
 const tc = __nccwpck_require__(3472)
+const exec = __nccwpck_require__(5236)
 const config = __nccwpck_require__(700)
-
-const execAsync = promisify(exec)
 
 async function run() {
   try {
@@ -103336,11 +103333,11 @@ async function setupBazelisk() {
 
 async function isBazelAvailable() {
   try {
-    await execAsync('bazelisk version')
+    await exec.exec('bazelisk', ['version'], { silent: true })
     return true
   } catch (error) {
     try {
-      await execAsync('bazel version')
+      await exec.exec('bazel', ['version'], { silent: true })
       return true
     } catch (error) {
       return false

@@ -1,15 +1,12 @@
 const fs = require('fs')
 const { setTimeout } = require('timers/promises')
-const { exec } = require('child_process')
-const { promisify } = require('util')
 const core = require('@actions/core')
 const cache = require('@actions/cache')
 const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
+const exec = require('@actions/exec')
 const config = require('./config')
-
-const execAsync = promisify(exec)
 
 async function run() {
   try {
@@ -57,11 +54,11 @@ async function setupBazelisk() {
 
 async function isBazelAvailable() {
   try {
-    await execAsync('bazelisk version')
+    await exec.exec('bazelisk', ['version'], { silent: true })
     return true
   } catch (error) {
     try {
-      await execAsync('bazel version')
+      await exec.exec('bazel', ['version'], { silent: true })
       return true
     } catch (error) {
       return false

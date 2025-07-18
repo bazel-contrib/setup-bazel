@@ -5,6 +5,7 @@ const cache = require('@actions/cache')
 const github = require('@actions/github')
 const glob = require('@actions/glob')
 const tc = require('@actions/tool-cache')
+const exec = require('@actions/exec')
 const config = require('./config')
 
 async function run() {
@@ -32,7 +33,12 @@ async function setupBazel() {
 
 async function setupBazelisk() {
   if (config.bazeliskVersion.length == 0) {
-    return
+    if (await isBazelAvailable()) {
+      core.info('Bazel or Bazelisk already available, skipping installation')
+      return
+    }
+    core.info('No bazelisk-version specified and bazel/bazelisk not found. Installing bazelisk v1.26.0.')
+    config.bazeliskVersion = 'v1.26.0'
   }
 
   core.startGroup('Setup Bazelisk')
@@ -44,6 +50,20 @@ async function setupBazelisk() {
   }
   core.addPath(toolPath)
   core.endGroup()
+}
+
+async function isBazelAvailable() {
+  try {
+    await exec.exec('bazelisk', ['version'], { silent: true })
+    return true
+  } catch (error) {
+    try {
+      await exec.exec('bazel', ['version'], { silent: true })
+      return true
+    } catch (error) {
+      return false
+    }
+  }
 }
 
 async function downloadBazelisk() {

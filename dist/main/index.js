@@ -52,7 +52,7 @@ switch (platform) {
     break
 }
 
-const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}`
+const baseCacheKey = `setup-bazel-${cacheVersion}-${platform}-${arch}`
 const bazelrc = core.getMultilineInput('bazelrc')
 
 const diskCacheConfig = core.getInput('disk-cache')

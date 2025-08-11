@@ -19,7 +19,7 @@ jobs:
           - ubuntu
           - windows
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./
       - if: failure() && runner.debug == '1'
         uses: mxschmitt/action-tmate@v3

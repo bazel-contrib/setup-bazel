@@ -25885,7 +25885,7 @@ async function unmountAndCommitStickyDisk(
   try {
     // Check if path is mounted
     try {
-      const { stdout: mountOutput } = await execAsync(`mount | grep ${path}`);
+      const { stdout: mountOutput } = await execAsync(`mount | grep "${path}"`);
       if (!mountOutput) {
         core.debug(`${path} is not mounted, skipping unmount`);
         return;
@@ -25896,28 +25896,14 @@ async function unmountAndCommitStickyDisk(
       return;
     }
 
-    // First try to unmount with retries
-    for (let attempt = 1; attempt <= 10; attempt++) {
-      try {
-        await execAsync(`sudo umount ${path}`);
-        core.info(`Successfully unmounted ${path}`);
-        break;
-      } catch (error) {
-        if (attempt === 10) {
-          throw error;
-        }
-        core.warning(`Unmount failed, retrying (${attempt}/10)...`);
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-    }
-
+    // Get filesystem usage BEFORE unmounting (critical timing)
+    let fsDiskUsageBytes = null;
     const actionFailed = core.getState("action-failed") === "true";
+
     if (!actionFailed) {
-      // Get filesystem usage of the mounted sticky disk path
-      let fsDiskUsageBytes = null;
       try {
         const { stdout } = await execAsync(
-          `df -B1 --output=used ${path} | tail -n1`
+          `df -B1 --output=used "${path}" | tail -n1`
         );
         const parsedValue = parseInt(stdout.trim(), 10);
 
@@ -25935,13 +25921,29 @@ async function unmountAndCommitStickyDisk(
           );
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
         core.warning(
-          `Failed to get filesystem usage: ${
-            error instanceof Error ? error.message : String(error)
-          }. Will not report fs usage.`
+          `Failed to get filesystem usage: ${errorMsg}. Will not report fs usage.`
         );
       }
+    }
 
+    // Unmount with retries
+    for (let attempt = 1; attempt <= 10; attempt++) {
+      try {
+        await execAsync(`sudo umount "${path}"`);
+        core.info(`Successfully unmounted ${path}`);
+        break;
+      } catch (error) {
+        if (attempt === 10) {
+          throw error;
+        }
+        core.warning(`Unmount failed, retrying (${attempt}/10)...`);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    }
+
+    if (!actionFailed) {
       await commitStickydisk(exposeId, stickyDiskKey, fsDiskUsageBytes);
     } else {
       await cleanupStickyDiskWithoutCommit(exposeId, stickyDiskKey);

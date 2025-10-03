@@ -25676,7 +25676,7 @@ async function getStickyDisk(stickyDiskKey, options = {}) {
     },
     {
       signal: options?.signal,
-    }
+    },
   );
 
   return {
@@ -25696,7 +25696,7 @@ async function maybeFormatBlockDevice(device) {
     try {
       // Need sudo for blkid as it requires root to read block device metadata
       const { stdout } = await execAsync(
-        `sudo blkid -o value -s TYPE ${device}`
+        `sudo blkid -o value -s TYPE ${device}`,
       );
       if (stdout.trim() === "ext4") {
         core.debug(`Device ${device} is already formatted with ext4`);
@@ -25722,7 +25722,7 @@ async function maybeFormatBlockDevice(device) {
     // root_owner=$(id -u):$(id -g): Sets filesystem root directory owner to current (runner) user
     // This ensures the filesystem is owned by runner user from the start
     await execAsync(
-      `sudo mkfs.ext4 -m0 -E root_owner=$(id -u):$(id -g) -Enodiscard,lazy_itable_init=1,lazy_journal_init=1 -F ${device}`
+      `sudo mkfs.ext4 -m0 -E root_owner=$(id -u):$(id -g) -Enodiscard,lazy_itable_init=1,lazy_journal_init=1 -F ${device}`,
     );
     core.debug(`Successfully formatted ${device} with ext4`);
     return device;
@@ -25744,7 +25744,7 @@ async function mountStickyDisk(
   stickyDiskKey,
   stickyDiskPath,
   signal,
-  controller
+  controller,
 ) {
   const timeoutId = setTimeout(() => controller.abort(), 15000);
   const stickyDiskResponse = await getStickyDisk(stickyDiskKey, { signal });
@@ -25765,7 +25765,7 @@ async function mountStickyDisk(
   await execAsync(`sudo chown $(id -u):$(id -g) ${stickyDiskPath}`);
 
   core.debug(
-    `${device} has been mounted to ${stickyDiskPath} with expose ID ${exposeId}`
+    `${device} has been mounted to ${stickyDiskPath} with expose ID ${exposeId}`,
   );
   return { device, exposeId };
 }
@@ -25773,14 +25773,14 @@ async function mountStickyDisk(
 async function commitStickydisk(
   exposeId,
   stickyDiskKey,
-  fsDiskUsageBytes = null
+  fsDiskUsageBytes = null,
 ) {
   core.info(
-    `Committing sticky disk ${stickyDiskKey} with expose ID ${exposeId}`
+    `Committing sticky disk ${stickyDiskKey} with expose ID ${exposeId}`,
   );
   if (!exposeId || !stickyDiskKey) {
     core.warning(
-      "No expose ID or sticky disk key found, cannot report sticky disk to Blacksmith"
+      "No expose ID or sticky disk key found, cannot report sticky disk to Blacksmith",
     );
     return;
   }
@@ -25804,7 +25804,7 @@ async function commitStickydisk(
       core.debug(`Reporting fs usage: ${fsDiskUsageBytes} bytes`);
     } else {
       core.debug(
-        "No fs usage data available, storage agent will use fallback sizing"
+        "No fs usage data available, storage agent will use fallback sizing",
       );
     }
 
@@ -25812,24 +25812,24 @@ async function commitStickydisk(
       timeoutMs: 30000,
     });
     core.info(
-      `Successfully committed sticky disk ${stickyDiskKey} with expose ID ${exposeId}`
+      `Successfully committed sticky disk ${stickyDiskKey} with expose ID ${exposeId}`,
     );
   } catch (error) {
     core.warning(
       `Error committing sticky disk: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
 
 async function cleanupStickyDiskWithoutCommit(exposeId, stickyDiskKey) {
   core.info(
-    `Cleaning up sticky disk ${stickyDiskKey} with expose ID ${exposeId}`
+    `Cleaning up sticky disk ${stickyDiskKey} with expose ID ${exposeId}`,
   );
   if (!exposeId || !stickyDiskKey) {
     core.warning(
-      "No expose ID or sticky disk key found, cannot report sticky disk to Blacksmith"
+      "No expose ID or sticky disk key found, cannot report sticky disk to Blacksmith",
     );
     return;
   }
@@ -25847,13 +25847,13 @@ async function cleanupStickyDiskWithoutCommit(exposeId, stickyDiskKey) {
       },
       {
         timeoutMs: 30000,
-      }
+      },
     );
   } catch (error) {
     core.warning(
       `Error reporting build failed: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
     // We don't want to fail the build if this fails so we swallow the error.
   }
@@ -25862,7 +25862,7 @@ async function cleanupStickyDiskWithoutCommit(exposeId, stickyDiskKey) {
 async function unmountAndCommitStickyDisk(
   path,
   { device, exposeId },
-  stickyDiskKey
+  stickyDiskKey,
 ) {
   try {
     // Check if path is mounted
@@ -25885,13 +25885,13 @@ async function unmountAndCommitStickyDisk(
     if (!actionFailed) {
       try {
         const { stdout } = await execAsync(
-          `df -B1 --output=used "${path}" | tail -n1`
+          `df -B1 --output=used "${path}" | tail -n1`,
         );
         const parsedValue = parseInt(stdout.trim(), 10);
 
         if (isNaN(parsedValue) || parsedValue <= 0) {
           core.warning(
-            `Invalid filesystem usage value from df: "${stdout.trim()}". Will not report fs usage.`
+            `Invalid filesystem usage value from df: "${stdout.trim()}". Will not report fs usage.`,
           );
         } else {
           fsDiskUsageBytes = parsedValue;
@@ -25899,13 +25899,13 @@ async function unmountAndCommitStickyDisk(
             `Filesystem usage: ${fsDiskUsageBytes} bytes (${(
               fsDiskUsageBytes /
               (1 << 30)
-            ).toFixed(2)} GB)`
+            ).toFixed(2)} GiB)`,
           );
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         core.warning(
-          `Failed to get filesystem usage: ${errorMsg}. Will not report fs usage.`
+          `Failed to get filesystem usage: ${errorMsg}. Will not report fs usage.`,
         );
       }
     }
@@ -25933,7 +25933,7 @@ async function unmountAndCommitStickyDisk(
   } catch (error) {
     if (error instanceof Error) {
       core.error(
-        `Failed to cleanup and commit sticky disk at ${path}: ${error}`
+        `Failed to cleanup and commit sticky disk at ${path}: ${error}`,
       );
     }
   }

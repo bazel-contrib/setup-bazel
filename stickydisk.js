@@ -21,7 +21,7 @@ async function getStickyDisk(stickyDiskKey, options = {}) {
       stickyDiskKey: stickyDiskKey,
       region: process.env.BLACKSMITH_REGION || "eu-central",
       installationModelId: process.env.BLACKSMITH_INSTALLATION_MODEL_ID || "",
-      vmId: process.env.VM_ID || "",
+      vmId: process.env.BLACKSMITH_VM_ID || "",
       stickyDiskType: "stickydisk",
       stickyDiskToken: process.env.BLACKSMITH_STICKYDISK_TOKEN,
       repoName: process.env.GITHUB_REPO_NAME || "",
@@ -77,6 +77,29 @@ async function maybeFormatBlockDevice(device) {
       `sudo mkfs.ext4 -m0 -E root_owner=$(id -u):$(id -g) -Enodiscard,lazy_itable_init=1,lazy_journal_init=1 -F ${device}`,
     );
     core.debug(`Successfully formatted ${device} with ext4`);
+
+    // Remove lost+found directory to prevent permission issues.
+    // mkfs.ext4 always creates lost+found with root:root 0700 permissions for fsck recovery.
+    // This causes EACCES errors when tools (pnpm, yarn, npm, docker buildx) recursively scan
+    // directories mounted from sticky disks (e.g., ./node_modules, ./build-cache).
+    // For ephemeral CI cache filesystems, lost+found is unnecessary - corruption can be
+    // resolved by rebuilding the cache. Removing it prevents unpredictable build failures.
+    core.debug(`Removing lost+found directory from ${device}`);
+    const tempMount = `/tmp/stickydisk-init-${Date.now()}`;
+    try {
+      await execAsync(`sudo mkdir -p ${tempMount}`);
+      await execAsync(`sudo mount ${device} ${tempMount}`);
+      await execAsync(`sudo rm -rf ${tempMount}/lost+found`);
+      await execAsync(`sudo umount ${tempMount}`);
+      await execAsync(`sudo rmdir ${tempMount}`);
+      core.debug(`Removed lost+found directory from ${device}`);
+    } catch (error) {
+      core.warning(
+        `Failed to remove lost+found directory: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      // Non-fatal - continue even if cleanup fails
+    }
+
     return device;
   } catch (error) {
     core.error(`Failed to format device ${device}: ${error}`);
@@ -98,7 +121,7 @@ async function mountStickyDisk(
   signal,
   controller,
 ) {
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
   const stickyDiskResponse = await getStickyDisk(stickyDiskKey, { signal });
   const device = stickyDiskResponse.device;
   const exposeId = stickyDiskResponse.expose_id;
@@ -106,14 +129,16 @@ async function mountStickyDisk(
 
   await maybeFormatBlockDevice(device);
 
-  // Create mount point WITHOUT sudo so the directory is owned by runner user
-  // This is important because the mount point ownership affects access when nothing is mounted.
-  await execAsync(`mkdir -p ${stickyDiskPath}`);
+  // Create mount point with sudo (supports system directories like /nix, /mnt, etc.)
+  // Then change ownership to runner user so it's accessible
+  await execAsync(`sudo mkdir -p ${stickyDiskPath}`);
+  await execAsync(`sudo chown $(id -u):$(id -g) ${stickyDiskPath}`);
 
   // Mount the device with default options
   await execAsync(`sudo mount ${device} ${stickyDiskPath}`);
 
-  // After mounting, set the ownership of the mount point
+  // After mounting, ensure the mounted filesystem is owned by runner user
+  // This is important because the mount operation might change ownership
   await execAsync(`sudo chown $(id -u):$(id -g) ${stickyDiskPath}`);
 
   core.debug(
@@ -143,7 +168,7 @@ async function commitStickydisk(
     const commitRequest = {
       exposeId,
       stickyDiskKey,
-      vmId: process.env.VM_ID || "",
+      vmId: process.env.BLACKSMITH_VM_ID || "",
       shouldCommit: true,
       repoName: process.env.GITHUB_REPO_NAME || "",
       stickyDiskToken: process.env.BLACKSMITH_STICKYDISK_TOKEN || "",
@@ -192,7 +217,7 @@ async function cleanupStickyDiskWithoutCommit(exposeId, stickyDiskKey) {
       {
         exposeId,
         stickyDiskKey,
-        vmId: process.env.VM_ID || "",
+        vmId: process.env.BLACKSMITH_VM_ID || "",
         shouldCommit: false,
         repoName: process.env.GITHUB_REPO_NAME || "",
         stickyDiskToken: process.env.BLACKSMITH_STICKYDISK_TOKEN || "",
@@ -230,6 +255,9 @@ async function unmountAndCommitStickyDisk(
       return;
     }
 
+    // Ensure all pending writes are flushed to disk before collecting usage.
+    await execAsync("sync");
+
     // Get filesystem usage BEFORE unmounting (critical timing)
     let fsDiskUsageBytes = null;
     const actionFailed = core.getState("action-failed") === "true";
@@ -261,6 +289,10 @@ async function unmountAndCommitStickyDisk(
         );
       }
     }
+
+    // Drop page cache, dentries and inodes to ensure clean unmount
+    // This helps prevent "device is busy" errors during unmount
+    await execAsync("sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'");
 
     // Unmount with retries
     for (let attempt = 1; attempt <= 10; attempt++) {

@@ -488,7 +488,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const crypto = __importStar(__nccwpck_require__(6982));
 const fs = __importStar(__nccwpck_require__(9896));
 const os = __importStar(__nccwpck_require__(857));
 const utils_1 = __nccwpck_require__(302);
@@ -2446,7 +2445,7 @@ class HttpClient {
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
         }
-        if (!useProxy) {
+        if (this._keepAlive && !useProxy) {
             agent = this._agent;
         }
         // if agent is already assigned use that agent.
@@ -2478,11 +2477,15 @@ class HttpClient {
             agent = tunnelAgent(agentOptions);
             this._proxyAgent = agent;
         }
-        // if tunneling agent isn't assigned create a new agent
-        if (!agent) {
+        // if reusing agent across request and tunneling agent isn't assigned create a new agent
+        if (this._keepAlive && !agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
             agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
             this._agent = agent;
+        }
+        // if not using private agent and tunnel agent isn't setup then use global agent
+        if (!agent) {
+            agent = usingSsl ? https.globalAgent : http.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
             // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
@@ -2505,7 +2508,7 @@ class HttpClient {
         }
         const usingSsl = parsedUrl.protocol === 'https:';
         proxyAgent = new undici_1.ProxyAgent(Object.assign({ uri: proxyUrl.href, pipelining: !this._keepAlive ? 0 : 1 }, ((proxyUrl.username || proxyUrl.password) && {
-            token: `Basic ${Buffer.from(`${proxyUrl.username}:${proxyUrl.password}`).toString('base64')}`
+            token: `${proxyUrl.username}:${proxyUrl.password}`
         })));
         this._proxyAgentDispatcher = proxyAgent;
         if (usingSsl && this._ignoreSslError) {
@@ -2619,11 +2622,11 @@ function getProxyUrl(reqUrl) {
     })();
     if (proxyVar) {
         try {
-            return new DecodedURL(proxyVar);
+            return new URL(proxyVar);
         }
         catch (_a) {
             if (!proxyVar.startsWith('http://') && !proxyVar.startsWith('https://'))
-                return new DecodedURL(`http://${proxyVar}`);
+                return new URL(`http://${proxyVar}`);
         }
     }
     else {
@@ -2682,19 +2685,6 @@ function isLoopbackAddress(host) {
         hostLower.startsWith('[::1]') ||
         hostLower.startsWith('[0:0:0:0:0:0:0:1]'));
 }
-class DecodedURL extends URL {
-    constructor(url, base) {
-        super(url, base);
-        this._decodedUsername = decodeURIComponent(super.username);
-        this._decodedPassword = decodeURIComponent(super.password);
-    }
-    get username() {
-        return this._decodedUsername;
-    }
-    get password() {
-        return this._decodedPassword;
-    }
-}
 //# sourceMappingURL=proxy.js.map
 
 /***/ }),
@@ -2734,17 +2724,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
+exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rename = exports.readlink = exports.readdir = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
 const fs = __importStar(__nccwpck_require__(9896));
 const path = __importStar(__nccwpck_require__(6928));
-_a = fs.promises
-// export const {open} = 'fs'
-, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
-// export const {open} = 'fs'
+_a = fs.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
 exports.IS_WINDOWS = process.platform === 'win32';
-// See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
-exports.UV_FS_O_EXLOCK = 0x10000000;
-exports.READONLY = fs.constants.O_RDONLY;
 function exists(fsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2925,8 +2909,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
 const assert_1 = __nccwpck_require__(2613);
+const childProcess = __importStar(__nccwpck_require__(5317));
 const path = __importStar(__nccwpck_require__(6928));
+const util_1 = __nccwpck_require__(9023);
 const ioUtil = __importStar(__nccwpck_require__(5207));
+const exec = util_1.promisify(childProcess.exec);
+const execFile = util_1.promisify(childProcess.execFile);
 /**
  * Copies a file or folder.
  * Based off of shelljs - https://github.com/shelljs/shelljs/blob/9237f66c52e5daa40458f94f9565e18e8132f5a6/src/cp.js
@@ -3007,23 +2995,61 @@ exports.mv = mv;
 function rmRF(inputPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if (ioUtil.IS_WINDOWS) {
+            // Node doesn't provide a delete operation, only an unlink function. This means that if the file is being used by another
+            // program (e.g. antivirus), it won't be deleted. To address this, we shell out the work to rd/del.
             // Check for invalid characters
             // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
             if (/[*"<>|]/.test(inputPath)) {
                 throw new Error('File path must not contain `*`, `"`, `<`, `>` or `|` on Windows');
             }
+            try {
+                const cmdPath = ioUtil.getCmdPath();
+                if (yield ioUtil.isDirectory(inputPath, true)) {
+                    yield exec(`${cmdPath} /s /c "rd /s /q "%inputPath%""`, {
+                        env: { inputPath }
+                    });
+                }
+                else {
+                    yield exec(`${cmdPath} /s /c "del /f /a "%inputPath%""`, {
+                        env: { inputPath }
+                    });
+                }
+            }
+            catch (err) {
+                // if you try to delete a file that doesn't exist, desired result is achieved
+                // other errors are valid
+                if (err.code !== 'ENOENT')
+                    throw err;
+            }
+            // Shelling out fails to remove a symlink folder with missing source, this unlink catches that
+            try {
+                yield ioUtil.unlink(inputPath);
+            }
+            catch (err) {
+                // if you try to delete a file that doesn't exist, desired result is achieved
+                // other errors are valid
+                if (err.code !== 'ENOENT')
+                    throw err;
+            }
         }
-        try {
-            // note if path does not exist, error is silent
-            yield ioUtil.rm(inputPath, {
-                force: true,
-                maxRetries: 3,
-                recursive: true,
-                retryDelay: 300
-            });
-        }
-        catch (err) {
-            throw new Error(`File was unable to be removed ${err}`);
+        else {
+            let isDir = false;
+            try {
+                isDir = yield ioUtil.isDirectory(inputPath);
+            }
+            catch (err) {
+                // if you try to delete a file that doesn't exist, desired result is achieved
+                // other errors are valid
+                if (err.code !== 'ENOENT')
+                    throw err;
+                return;
+            }
+            if (isDir) {
+                yield execFile(`rm`, [`-rf`, `${inputPath}`]);
+            }
+            else {
+                yield ioUtil.unlink(inputPath);
+            }
         }
     });
 }
@@ -8803,7 +8829,7 @@ module.exports = {
 
 
 const { parseSetCookie } = __nccwpck_require__(8915)
-const { stringify } = __nccwpck_require__(3834)
+const { stringify, getHeadersList } = __nccwpck_require__(3834)
 const { webidl } = __nccwpck_require__(4222)
 const { Headers } = __nccwpck_require__(6349)
 
@@ -8879,13 +8905,14 @@ function getSetCookies (headers) {
 
   webidl.brandCheck(headers, Headers, { strict: false })
 
-  const cookies = headers.getSetCookie()
+  const cookies = getHeadersList(headers).cookies
 
   if (!cookies) {
     return []
   }
 
-  return cookies.map((pair) => parseSetCookie(pair))
+  // In older versions of undici, cookies is a list of name:value.
+  return cookies.map((pair) => parseSetCookie(Array.isArray(pair) ? pair[1] : pair))
 }
 
 /**
@@ -9313,15 +9340,14 @@ module.exports = {
 /***/ }),
 
 /***/ 3834:
-/***/ ((module) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
 
 
-/**
- * @param {string} value
- * @returns {boolean}
- */
+const assert = __nccwpck_require__(2613)
+const { kHeadersList } = __nccwpck_require__(6443)
+
 function isCTLExcludingHtab (value) {
   if (value.length === 0) {
     return false
@@ -9582,13 +9608,31 @@ function stringify (cookie) {
   return out.join('; ')
 }
 
+let kHeadersListNode
+
+function getHeadersList (headers) {
+  if (headers[kHeadersList]) {
+    return headers[kHeadersList]
+  }
+
+  if (!kHeadersListNode) {
+    kHeadersListNode = Object.getOwnPropertySymbols(headers).find(
+      (symbol) => symbol.description === 'headers list'
+    )
+
+    assert(kHeadersListNode, 'Headers cannot be parsed')
+  }
+
+  const headersList = headers[kHeadersListNode]
+  assert(headersList)
+
+  return headersList
+}
+
 module.exports = {
   isCTLExcludingHtab,
-  validateCookieName,
-  validateCookiePath,
-  validateCookieValue,
-  toIMFDate,
-  stringify
+  stringify,
+  getHeadersList
 }
 
 
@@ -11517,14 +11561,6 @@ const { isUint8Array, isArrayBuffer } = __nccwpck_require__(8253)
 const { File: UndiciFile } = __nccwpck_require__(3041)
 const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(4322)
 
-let random
-try {
-  const crypto = __nccwpck_require__(7598)
-  random = (max) => crypto.randomInt(0, max)
-} catch {
-  random = (max) => Math.floor(Math.random(max))
-}
-
 let ReadableStream = globalThis.ReadableStream
 
 /** @type {globalThis['File']} */
@@ -11610,7 +11646,7 @@ function extractBody (object, keepalive = false) {
     // Set source to a copy of the bytes held by object.
     source = new Uint8Array(object.buffer.slice(object.byteOffset, object.byteOffset + object.byteLength))
   } else if (util.isFormDataLike(object)) {
-    const boundary = `----formdata-undici-0${`${random(1e11)}`.padStart(11, '0')}`
+    const boundary = `----formdata-undici-0${`${Math.floor(Math.random() * 1e11)}`.padStart(11, '0')}`
     const prefix = `--${boundary}\r\nContent-Disposition: form-data`
 
     /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
@@ -13592,7 +13628,6 @@ const {
   isValidHeaderName,
   isValidHeaderValue
 } = __nccwpck_require__(5523)
-const util = __nccwpck_require__(9023)
 const { webidl } = __nccwpck_require__(4222)
 const assert = __nccwpck_require__(2613)
 
@@ -14146,9 +14181,6 @@ Object.defineProperties(Headers.prototype, {
   [Symbol.toStringTag]: {
     value: 'Headers',
     configurable: true
-  },
-  [util.inspect.custom]: {
-    enumerable: false
   }
 })
 
@@ -23325,20 +23357,6 @@ class Pool extends PoolBase {
       ? { ...options.interceptors }
       : undefined
     this[kFactory] = factory
-
-    this.on('connectionError', (origin, targets, error) => {
-      // If a connection error occurs, we remove the client from the pool,
-      // and emit a connectionError event. They will not be re-used.
-      // Fixes https://github.com/nodejs/undici/issues/3895
-      for (const target of targets) {
-        // Do not use kRemoveClient here, as it will close the client,
-        // but the client cannot be closed in this state.
-        const idx = this[kClients].indexOf(target)
-        if (idx !== -1) {
-          this[kClients].splice(idx, 1)
-        }
-      }
-    })
   }
 
   [kGetDispatcher] () {
@@ -25669,7 +25687,7 @@ async function getStickyDisk(stickyDiskKey, options = {}) {
       stickyDiskKey: stickyDiskKey,
       region: process.env.BLACKSMITH_REGION || "eu-central",
       installationModelId: process.env.BLACKSMITH_INSTALLATION_MODEL_ID || "",
-      vmId: process.env.VM_ID || "",
+      vmId: process.env.BLACKSMITH_VM_ID || "",
       stickyDiskType: "stickydisk",
       stickyDiskToken: process.env.BLACKSMITH_STICKYDISK_TOKEN,
       repoName: process.env.GITHUB_REPO_NAME || "",
@@ -25725,6 +25743,29 @@ async function maybeFormatBlockDevice(device) {
       `sudo mkfs.ext4 -m0 -E root_owner=$(id -u):$(id -g) -Enodiscard,lazy_itable_init=1,lazy_journal_init=1 -F ${device}`,
     );
     core.debug(`Successfully formatted ${device} with ext4`);
+
+    // Remove lost+found directory to prevent permission issues.
+    // mkfs.ext4 always creates lost+found with root:root 0700 permissions for fsck recovery.
+    // This causes EACCES errors when tools (pnpm, yarn, npm, docker buildx) recursively scan
+    // directories mounted from sticky disks (e.g., ./node_modules, ./build-cache).
+    // For ephemeral CI cache filesystems, lost+found is unnecessary - corruption can be
+    // resolved by rebuilding the cache. Removing it prevents unpredictable build failures.
+    core.debug(`Removing lost+found directory from ${device}`);
+    const tempMount = `/tmp/stickydisk-init-${Date.now()}`;
+    try {
+      await execAsync(`sudo mkdir -p ${tempMount}`);
+      await execAsync(`sudo mount ${device} ${tempMount}`);
+      await execAsync(`sudo rm -rf ${tempMount}/lost+found`);
+      await execAsync(`sudo umount ${tempMount}`);
+      await execAsync(`sudo rmdir ${tempMount}`);
+      core.debug(`Removed lost+found directory from ${device}`);
+    } catch (error) {
+      core.warning(
+        `Failed to remove lost+found directory: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      // Non-fatal - continue even if cleanup fails
+    }
+
     return device;
   } catch (error) {
     core.error(`Failed to format device ${device}: ${error}`);
@@ -25746,7 +25787,7 @@ async function mountStickyDisk(
   signal,
   controller,
 ) {
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
   const stickyDiskResponse = await getStickyDisk(stickyDiskKey, { signal });
   const device = stickyDiskResponse.device;
   const exposeId = stickyDiskResponse.expose_id;
@@ -25754,14 +25795,16 @@ async function mountStickyDisk(
 
   await maybeFormatBlockDevice(device);
 
-  // Create mount point WITHOUT sudo so the directory is owned by runner user
-  // This is important because the mount point ownership affects access when nothing is mounted.
-  await execAsync(`mkdir -p ${stickyDiskPath}`);
+  // Create mount point with sudo (supports system directories like /nix, /mnt, etc.)
+  // Then change ownership to runner user so it's accessible
+  await execAsync(`sudo mkdir -p ${stickyDiskPath}`);
+  await execAsync(`sudo chown $(id -u):$(id -g) ${stickyDiskPath}`);
 
   // Mount the device with default options
   await execAsync(`sudo mount ${device} ${stickyDiskPath}`);
 
-  // After mounting, set the ownership of the mount point
+  // After mounting, ensure the mounted filesystem is owned by runner user
+  // This is important because the mount operation might change ownership
   await execAsync(`sudo chown $(id -u):$(id -g) ${stickyDiskPath}`);
 
   core.debug(
@@ -25791,7 +25834,7 @@ async function commitStickydisk(
     const commitRequest = {
       exposeId,
       stickyDiskKey,
-      vmId: process.env.VM_ID || "",
+      vmId: process.env.BLACKSMITH_VM_ID || "",
       shouldCommit: true,
       repoName: process.env.GITHUB_REPO_NAME || "",
       stickyDiskToken: process.env.BLACKSMITH_STICKYDISK_TOKEN || "",
@@ -25840,7 +25883,7 @@ async function cleanupStickyDiskWithoutCommit(exposeId, stickyDiskKey) {
       {
         exposeId,
         stickyDiskKey,
-        vmId: process.env.VM_ID || "",
+        vmId: process.env.BLACKSMITH_VM_ID || "",
         shouldCommit: false,
         repoName: process.env.GITHUB_REPO_NAME || "",
         stickyDiskToken: process.env.BLACKSMITH_STICKYDISK_TOKEN || "",
@@ -25878,6 +25921,9 @@ async function unmountAndCommitStickyDisk(
       return;
     }
 
+    // Ensure all pending writes are flushed to disk before collecting usage.
+    await execAsync("sync");
+
     // Get filesystem usage BEFORE unmounting (critical timing)
     let fsDiskUsageBytes = null;
     const actionFailed = core.getState("action-failed") === "true";
@@ -25909,6 +25955,10 @@ async function unmountAndCommitStickyDisk(
         );
       }
     }
+
+    // Drop page cache, dentries and inodes to ensure clean unmount
+    // This helps prevent "device is busy" errors during unmount
+    await execAsync("sudo sh -c 'echo 3 > /proc/sys/vm/drop_caches'");
 
     // Unmount with retries
     for (let attempt = 1; attempt <= 10; attempt++) {
@@ -25963,10 +26013,12 @@ const { createClient } = __nccwpck_require__(4673);
 const { createGrpcTransport } = __nccwpck_require__(4506);
 const {
   StickyDiskService,
-} = __nccwpck_require__(4402);
+} = __nccwpck_require__(7334);
 
 function createStickyDiskClient() {
   const port = process.env.BLACKSMITH_STICKY_DISK_GRPC_PORT || "5557";
+  const core = __nccwpck_require__(7484);
+  core.info(`Creating sticky disk client with port ${port}`);
   const transport = createGrpcTransport({
     baseUrl: `http://192.168.127.1:${port}`,
     httpVersion: "2",
@@ -26130,14 +26182,6 @@ module.exports = require("https");
 
 "use strict";
 module.exports = require("net");
-
-/***/ }),
-
-/***/ 7598:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:crypto");
 
 /***/ }),
 
@@ -28015,20 +28059,11 @@ function resolve(desc, registry, context) {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createMutableRegistry = exports.createRegistry = void 0;
+exports.createRegistry = void 0;
 /**
  * Create a new registry from the given types.
  */
 function createRegistry(...types) {
-    const mutable = createMutableRegistry(...types);
-    delete mutable.add;
-    return mutable;
-}
-exports.createRegistry = createRegistry;
-/**
- * Create a mutable registry from the given types.
- */
-function createMutableRegistry(...types) {
     const messages = {};
     const enums = {};
     const services = {};
@@ -28052,57 +28087,57 @@ function createMutableRegistry(...types) {
             var _a;
             return (_a = extensionsByName.get(typeName)) !== null && _a !== void 0 ? _a : undefined;
         },
-        add(type) {
-            var _a;
-            if ("fields" in type) {
-                if (!this.findMessage(type.typeName)) {
-                    messages[type.typeName] = type;
-                    type.fields.list().forEach(addField);
-                }
-            }
-            else if ("methods" in type) {
-                if (!this.findService(type.typeName)) {
-                    services[type.typeName] = type;
-                    for (const method of Object.values(type.methods)) {
-                        this.add(method.I);
-                        this.add(method.O);
-                    }
-                }
-            }
-            else if ("extendee" in type) {
-                if (!extensionsByName.has(type.typeName)) {
-                    extensionsByName.set(type.typeName, type);
-                    const extendeeName = type.extendee.typeName;
-                    if (!extensionsByExtendee.has(extendeeName)) {
-                        extensionsByExtendee.set(extendeeName, new Map());
-                    }
-                    (_a = extensionsByExtendee.get(extendeeName)) === null || _a === void 0 ? void 0 : _a.set(type.field.no, type);
-                    this.add(type.extendee);
-                    addField(type.field);
-                }
-            }
-            else {
-                enums[type.typeName] = type;
-            }
-        },
     };
+    function addType(type) {
+        var _a;
+        if ("fields" in type) {
+            if (!registry.findMessage(type.typeName)) {
+                messages[type.typeName] = type;
+                type.fields.list().forEach(addField);
+            }
+        }
+        else if ("methods" in type) {
+            if (!registry.findService(type.typeName)) {
+                services[type.typeName] = type;
+                for (const method of Object.values(type.methods)) {
+                    addType(method.I);
+                    addType(method.O);
+                }
+            }
+        }
+        else if ("extendee" in type) {
+            if (!extensionsByName.has(type.typeName)) {
+                extensionsByName.set(type.typeName, type);
+                const extendeeName = type.extendee.typeName;
+                if (!extensionsByExtendee.has(extendeeName)) {
+                    extensionsByExtendee.set(extendeeName, new Map());
+                }
+                (_a = extensionsByExtendee.get(extendeeName)) === null || _a === void 0 ? void 0 : _a.set(type.field.no, type);
+                addType(type.extendee);
+                addField(type.field);
+            }
+        }
+        else {
+            enums[type.typeName] = type;
+        }
+    }
     function addField(field) {
         if (field.kind == "message") {
-            registry.add(field.T);
+            addType(field.T);
         }
         else if (field.kind == "map" && field.V.kind == "message") {
-            registry.add(field.V.T);
+            addType(field.V.T);
         }
         else if (field.kind == "enum") {
-            registry.add(field.T);
+            addType(field.T);
         }
     }
     for (const type of types) {
-        registry.add(type);
+        addType(type);
     }
     return registry;
 }
-exports.createMutableRegistry = createMutableRegistry;
+exports.createRegistry = createRegistry;
 
 
 /***/ }),
@@ -29088,7 +29123,7 @@ exports.GeneratedCodeInfo_Annotation_Semantic = exports.GeneratedCodeInfo_Annota
 // The messages in this file describe the definitions found in .proto files.
 // A valid .proto file can be translated directly to a FileDescriptorProto
 // without any other information (e.g. without reading its imports).
-// @generated by protoc-gen-es v1.10.1 with parameter "bootstrap_wkt=true,ts_nocheck=false,target=ts"
+// @generated by protoc-gen-es v1.10.0 with parameter "bootstrap_wkt=true,ts_nocheck=false,target=ts"
 // @generated from file google/protobuf/descriptor.proto (package google.protobuf, syntax proto2)
 /* eslint-disable */
 const proto2_js_1 = __nccwpck_require__(1688);
@@ -31785,7 +31820,7 @@ SourceContext.fields = proto3_js_1.proto3.util.newFieldList(() => [
 // limitations under the License.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ListValue = exports.Value = exports.Struct = exports.NullValue = void 0;
-// @generated by protoc-gen-es v1.10.1 with parameter "bootstrap_wkt=true,ts_nocheck=false,target=ts"
+// @generated by protoc-gen-es v1.10.0 with parameter "bootstrap_wkt=true,ts_nocheck=false,target=ts"
 // @generated from file google/protobuf/struct.proto (package google.protobuf, syntax proto3)
 /* eslint-disable */
 const proto3_js_1 = __nccwpck_require__(6047);
@@ -32254,7 +32289,7 @@ Timestamp.fields = proto3_js_1.proto3.util.newFieldList(() => [
 // limitations under the License.
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Option = exports.EnumValue = exports.Enum = exports.Field_Cardinality = exports.Field_Kind = exports.Field = exports.Type = exports.Syntax = void 0;
-// @generated by protoc-gen-es v1.10.1 with parameter "bootstrap_wkt=true,ts_nocheck=false,target=ts"
+// @generated by protoc-gen-es v1.10.0 with parameter "bootstrap_wkt=true,ts_nocheck=false,target=ts"
 // @generated from file google/protobuf/type.proto (package google.protobuf, syntax proto3)
 /* eslint-disable */
 const proto3_js_1 = __nccwpck_require__(6047);
@@ -33745,7 +33780,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.toPlainMessage = exports.createRegistryFromDescriptors = exports.createMutableRegistry = exports.createRegistry = exports.createDescriptorSet = exports.BinaryReader = exports.BinaryWriter = exports.WireType = exports.MethodIdempotency = exports.MethodKind = exports.clearExtension = exports.hasExtension = exports.setExtension = exports.getExtension = exports.ScalarType = exports.LongType = exports.isMessage = exports.Message = exports.codegenInfo = exports.protoDelimited = exports.protoBase64 = exports.protoInt64 = exports.protoDouble = exports.proto2 = exports.proto3 = void 0;
+exports.toPlainMessage = exports.createRegistryFromDescriptors = exports.createRegistry = exports.createDescriptorSet = exports.BinaryReader = exports.BinaryWriter = exports.WireType = exports.MethodIdempotency = exports.MethodKind = exports.clearExtension = exports.hasExtension = exports.setExtension = exports.getExtension = exports.ScalarType = exports.LongType = exports.isMessage = exports.Message = exports.codegenInfo = exports.protoDelimited = exports.protoBase64 = exports.protoInt64 = exports.protoDouble = exports.proto2 = exports.proto3 = void 0;
 var proto3_js_1 = __nccwpck_require__(6047);
 Object.defineProperty(exports, "proto3", ({ enumerable: true, get: function () { return proto3_js_1.proto3; } }));
 var proto2_js_1 = __nccwpck_require__(1688);
@@ -33783,7 +33818,6 @@ var create_descriptor_set_js_1 = __nccwpck_require__(5773);
 Object.defineProperty(exports, "createDescriptorSet", ({ enumerable: true, get: function () { return create_descriptor_set_js_1.createDescriptorSet; } }));
 var create_registry_js_1 = __nccwpck_require__(8062);
 Object.defineProperty(exports, "createRegistry", ({ enumerable: true, get: function () { return create_registry_js_1.createRegistry; } }));
-Object.defineProperty(exports, "createMutableRegistry", ({ enumerable: true, get: function () { return create_registry_js_1.createMutableRegistry; } }));
 var create_registry_from_desc_js_1 = __nccwpck_require__(2493);
 Object.defineProperty(exports, "createRegistryFromDescriptors", ({ enumerable: true, get: function () { return create_registry_from_desc_js_1.createRegistryFromDescriptors; } }));
 var to_plain_message_js_1 = __nccwpck_require__(8574);
@@ -36864,17 +36898,7 @@ function makeUtilCommon() {
                 }
                 switch (m.kind) {
                     case "message":
-                        let a = va;
-                        let b = vb;
-                        if (m.T.fieldWrapper) {
-                            if (a !== undefined && !(0, is_message_js_1.isMessage)(a)) {
-                                a = m.T.fieldWrapper.wrapField(a);
-                            }
-                            if (b !== undefined && !(0, is_message_js_1.isMessage)(b)) {
-                                b = m.T.fieldWrapper.wrapField(b);
-                            }
-                        }
-                        return m.T.equals(a, b);
+                        return m.T.equals(va, vb);
                     case "enum":
                         return (0, scalars_js_1.scalarEquals)(scalar_js_1.ScalarType.INT32, va, vb);
                     case "scalar":
@@ -41704,8 +41728,8 @@ function requestHeader(methodKind, useBinaryFormat, timeoutMs, userProvidedHeade
             ? content_type_js_1.contentTypeStreamProto
             : content_type_js_1.contentTypeStreamJson);
     result.set(headers_js_1.headerProtocolVersion, version_js_1.protocolVersion);
-    if (setUserAgent && !result.has(headers_js_1.headerUserAgent)) {
-        result.set(headers_js_1.headerUserAgent, "connect-es/1.7.0");
+    if (setUserAgent) {
+        result.set(headers_js_1.headerUserAgent, "connect-es/1.6.1");
     }
     return result;
 }
@@ -42503,7 +42527,6 @@ const content_type_js_1 = __nccwpck_require__(7488);
  * @private Internal code, does not follow semantic versioning.
  */
 function requestHeader(useBinaryFormat, timeoutMs, userProvidedHeaders, setUserAgent) {
-    var _a, _b;
     const result = new Headers(userProvidedHeaders !== null && userProvidedHeaders !== void 0 ? userProvidedHeaders : {});
     // Note that we do not support the grpc-web-text format.
     // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md#protocol-differences-vs-grpc-over-http2
@@ -42512,10 +42535,9 @@ function requestHeader(useBinaryFormat, timeoutMs, userProvidedHeaders, setUserA
     // Note that we do not strictly comply with gRPC user agents.
     // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
     // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
-    const userAgent = (_b = (_a = result.get(headers_js_1.headerUserAgent)) !== null && _a !== void 0 ? _a : result.get(headers_js_1.headerXUserAgent)) !== null && _b !== void 0 ? _b : "connect-es/1.7.0";
-    result.set(headers_js_1.headerXUserAgent, userAgent);
+    result.set(headers_js_1.headerXUserAgent, "connect-es/1.6.1");
     if (setUserAgent) {
-        result.set(headers_js_1.headerUserAgent, userAgent);
+        result.set(headers_js_1.headerUserAgent, "connect-es/1.6.1");
     }
     if (timeoutMs !== undefined) {
         result.set(headers_js_1.headerTimeout, `${timeoutMs}m`);
@@ -43502,12 +43524,10 @@ const content_type_js_1 = __nccwpck_require__(9969);
 function requestHeader(useBinaryFormat, timeoutMs, userProvidedHeaders) {
     const result = new Headers(userProvidedHeaders !== null && userProvidedHeaders !== void 0 ? userProvidedHeaders : {});
     result.set(headers_js_1.headerContentType, useBinaryFormat ? content_type_js_1.contentTypeProto : content_type_js_1.contentTypeJson);
-    if (!result.has(headers_js_1.headerUserAgent)) {
-        // Note that we do not strictly comply with gRPC user agents.
-        // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
-        // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
-        result.set(headers_js_1.headerUserAgent, "connect-es/1.7.0");
-    }
+    // Note that we do not strictly comply with gRPC user agents.
+    // We use "connect-es/1.2.3" where gRPC would use "grpc-es/1.2.3".
+    // See https://github.com/grpc/grpc/blob/c462bb8d485fc1434ecfae438823ca8d14cf3154/doc/PROTOCOL-HTTP2.md#user-agents
+    result.set(headers_js_1.headerUserAgent, "connect-es/1.6.1");
     if (timeoutMs !== undefined) {
         result.set(headers_js_1.headerTimeout, `${timeoutMs}m`);
     }
@@ -46878,7 +46898,7 @@ Dicer.prototype._write = function (data, encoding, cb) {
   if (this._headerFirst && this._isPreamble) {
     if (!this._part) {
       this._part = new PartStream(this._partOpts)
-      if (this.listenerCount('preamble') !== 0) { this.emit('preamble', this._part) } else { this._ignore() }
+      if (this._events.preamble) { this.emit('preamble', this._part) } else { this._ignore() }
     }
     const r = this._hparser.push(data)
     if (!this._inHeader && r !== undefined && r < data.length) { data = data.slice(r) } else { return cb() }
@@ -46935,7 +46955,7 @@ Dicer.prototype._oninfo = function (isMatch, data, start, end) {
       }
     }
     if (this._dashes === 2) {
-      if ((start + i) < end && this.listenerCount('trailer') !== 0) { this.emit('trailer', data.slice(start + i, end)) }
+      if ((start + i) < end && this._events.trailer) { this.emit('trailer', data.slice(start + i, end)) }
       this.reset()
       this._finished = true
       // no more parts will be added
@@ -46953,13 +46973,7 @@ Dicer.prototype._oninfo = function (isMatch, data, start, end) {
     this._part._read = function (n) {
       self._unpause()
     }
-    if (this._isPreamble && this.listenerCount('preamble') !== 0) {
-      this.emit('preamble', this._part)
-    } else if (this._isPreamble !== true && this.listenerCount('part') !== 0) {
-      this.emit('part', this._part)
-    } else {
-      this._ignore()
-    }
+    if (this._isPreamble && this._events.preamble) { this.emit('preamble', this._part) } else if (this._isPreamble !== true && this._events.part) { this.emit('part', this._part) } else { this._ignore() }
     if (!this._isPreamble) { this._inHeader = true }
   }
   if (data && start < end && !this._ignoreData) {
@@ -47642,7 +47656,7 @@ function Multipart (boy, cfg) {
 
         ++nfiles
 
-        if (boy.listenerCount('file') === 0) {
+        if (!boy._events.file) {
           self.parser._ignore()
           return
         }
@@ -48171,7 +48185,7 @@ const decoders = {
     if (textDecoders.has(this.toString())) {
       try {
         return textDecoders.get(this).decode(data)
-      } catch {}
+      } catch (e) { }
     }
     return typeof data === 'string'
       ? data
@@ -48419,7 +48433,7 @@ module.exports = parseParams
 
 /***/ }),
 
-/***/ 4402:
+/***/ 7334:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
@@ -51499,17 +51513,7 @@ function makeUtilCommon() {
                 }
                 switch (m.kind) {
                     case "message":
-                        let a = va;
-                        let b = vb;
-                        if (m.T.fieldWrapper) {
-                            if (a !== undefined && !isMessage(a)) {
-                                a = m.T.fieldWrapper.wrapField(a);
-                            }
-                            if (b !== undefined && !isMessage(b)) {
-                                b = m.T.fieldWrapper.wrapField(b);
-                            }
-                        }
-                        return m.T.equals(a, b);
+                        return m.T.equals(va, vb);
                     case "enum":
                         return scalarEquals(ScalarType.INT32, va, vb);
                     case "scalar":
@@ -52150,25 +52154,13 @@ const proto3 = makeProtoRuntime("proto3", (fields) => {
     }
 });
 
-;// CONCATENATED MODULE: ./node_modules/@buf/blacksmith_vm-agent.connectrpc_es/node_modules/@buf/blacksmith_vm-agent.bufbuild_es/stickydisk/v1/stickydisk_pb.js
+;// CONCATENATED MODULE: ./node_modules/@buf/blacksmith_vm-agent.bufbuild_es/stickydisk/v1/stickydisk_pb.js
 // @generated by protoc-gen-es v1.10.0
 // @generated from file stickydisk/v1/stickydisk.proto (package stickydisk.v1, syntax proto3)
 /* eslint-disable */
 // @ts-nocheck
 
 
-
-/**
- * @generated from enum stickydisk.v1.Architecture
- */
-const Architecture = /*@__PURE__*/ proto3.makeEnum(
-  "stickydisk.v1.Architecture",
-  [
-    {no: 0, name: "ARCHITECTURE_UNSPECIFIED", localName: "UNSPECIFIED"},
-    {no: 1, name: "ARCHITECTURE_AMD64", localName: "AMD64"},
-    {no: 2, name: "ARCHITECTURE_ARM64", localName: "ARM64"},
-  ],
-);
 
 /**
  * @generated from message stickydisk.v1.GetStickyDiskRequest
@@ -52209,7 +52201,6 @@ const CommitStickyDiskRequest = /*@__PURE__*/ proto3.makeMessageType(
     { no: 4, name: "should_commit", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 5, name: "repo_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "sticky_disk_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "fs_disk_usage_bytes", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ],
 );
 
@@ -52218,56 +52209,6 @@ const CommitStickyDiskRequest = /*@__PURE__*/ proto3.makeMessageType(
  */
 const CommitStickyDiskResponse = /*@__PURE__*/ proto3.makeMessageType(
   "stickydisk.v1.CommitStickyDiskResponse",
-  [],
-);
-
-/**
- * @generated from message stickydisk.v1.Metric
- */
-const Metric = /*@__PURE__*/ proto3.makeMessageType(
-  "stickydisk.v1.Metric",
-  () => [
-    { no: 1, name: "int_value", kind: "scalar", T: 3 /* ScalarType.INT64 */, oneof: "value" },
-    { no: 2, name: "double_value", kind: "scalar", T: 1 /* ScalarType.DOUBLE */, oneof: "value" },
-    { no: 3, name: "type", kind: "enum", T: proto3.getEnumType(Metric_MetricType) },
-  ],
-);
-
-/**
- * @generated from enum stickydisk.v1.Metric.MetricType
- */
-const Metric_MetricType = /*@__PURE__*/ proto3.makeEnum(
-  "stickydisk.v1.Metric.MetricType",
-  [
-    {no: 0, name: "METRIC_TYPE_UNSPECIFIED"},
-    {no: 1, name: "BPA_HOTLOAD_DURATION_MS"},
-    {no: 2, name: "BPA_BUILDKITD_READY_DURATION_MS"},
-    {no: 3, name: "BPA_BUILDKITD_SHUTDOWN_DURATION_MS"},
-    {no: 4, name: "BPA_FEATURE_USAGE"},
-    {no: 5, name: "BAZEL_HOTLOAD_DURATION_MS"},
-    {no: 6, name: "BAZEL_FEATURE_USAGE"},
-    {no: 7, name: "BPA_V2_DEBUG_WORKERS_AVAILABLE_MS"},
-    {no: 8, name: "BPA_V2_PRUNE_BYTES"},
-  ],
-);
-
-/**
- * @generated from message stickydisk.v1.ReportMetricRequest
- */
-const ReportMetricRequest = /*@__PURE__*/ proto3.makeMessageType(
-  "stickydisk.v1.ReportMetricRequest",
-  () => [
-    { no: 1, name: "repo_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "region", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "metric", kind: "message", T: Metric },
-  ],
-);
-
-/**
- * @generated from message stickydisk.v1.ReportMetricResponse
- */
-const ReportMetricResponse = /*@__PURE__*/ proto3.makeMessageType(
-  "stickydisk.v1.ReportMetricResponse",
   [],
 );
 
@@ -52284,27 +52225,6 @@ const UpRequest = /*@__PURE__*/ proto3.makeMessageType(
  */
 const UpResponse = /*@__PURE__*/ proto3.makeMessageType(
   "stickydisk.v1.UpResponse",
-  [],
-);
-
-/**
- * @generated from message stickydisk.v1.QueueDockerJobRequest
- */
-const QueueDockerJobRequest = /*@__PURE__*/ proto3.makeMessageType(
-  "stickydisk.v1.QueueDockerJobRequest",
-  () => [
-    { no: 1, name: "job_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "tailscale_hostname", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "vm_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "arch", kind: "enum", T: proto3.getEnumType(Architecture) },
-  ],
-);
-
-/**
- * @generated from message stickydisk.v1.QueueDockerJobResponse
- */
-const QueueDockerJobResponse = /*@__PURE__*/ proto3.makeMessageType(
-  "stickydisk.v1.QueueDockerJobResponse",
   [],
 );
 
@@ -52401,24 +52321,6 @@ const StickyDiskService = {
       name: "Up",
       I: UpRequest,
       O: UpResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc stickydisk.v1.StickyDiskService.ReportMetric
-     */
-    reportMetric: {
-      name: "ReportMetric",
-      I: ReportMetricRequest,
-      O: ReportMetricResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc stickydisk.v1.StickyDiskService.QueueDockerJob
-     */
-    queueDockerJob: {
-      name: "QueueDockerJob",
-      I: QueueDockerJobRequest,
-      O: QueueDockerJobResponse,
       kind: MethodKind.Unary,
     },
   }

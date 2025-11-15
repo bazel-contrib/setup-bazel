@@ -11,6 +11,8 @@ const {
 
 function createStickyDiskClient() {
   const port = process.env.BLACKSMITH_STICKY_DISK_GRPC_PORT || "5557";
+  const core = require("@actions/core");
+  core.info(`Creating sticky disk client with port ${port}`);
   const transport = createGrpcTransport({
     baseUrl: `http://192.168.127.1:${port}`,
     httpVersion: "2",

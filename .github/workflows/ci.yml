@@ -16,14 +16,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - uses: bufbuild/buf-setup-action@v1
       - run: |
           npm config set @buf:registry https://buf.build/gen/npm/v1/
           npm config set //buf.build/gen/npm/v1/:_authToken ${{ secrets.BUF_TOKEN }}
-          npm install @buf/blacksmith_vm-agent.connectrpc_es@latest
       - run: npm ci
       - run: npm test
+      - name: Build Action
+        run: npm run build
+      - name: Check for uncommitted build changes
+        run: |
+          if ! git diff --quiet dist/; then
+            echo "Error: Build generated changes in dist/. Please run 'npm run build' locally and commit the changes."
+            git status dist/
+            git diff dist/
+            exit 1
+          fi
 
   setup-bazel:
     runs-on: ${{ matrix.os }}-latest

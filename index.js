@@ -133,14 +133,16 @@ async function restoreExternalCaches(cacheConfig) {
   // Now restore all external caches defined in manifest
   if (fs.existsSync(path)) {
     const manifest = fs.readFileSync(path, { encoding: 'utf8' })
-    for (const name of manifest.split('\n').filter(s => s)) {
-      await restoreCache({
-        enabled: cacheConfig[name]?.enabled ?? cacheConfig.default.enabled,
-        files: cacheConfig[name]?.files || cacheConfig.default.files,
-        name: cacheConfig.default.name(name),
-        paths: cacheConfig.default.paths(name)
-      })
-    }
+    const restorePromises = manifest.split('\n').filter(s => s)
+      .map(name => {
+        return restoreCache({
+          enabled: cacheConfig[name]?.enabled ?? cacheConfig.default.enabled,
+          files: cacheConfig[name]?.files || cacheConfig.default.files,
+          name: cacheConfig.default.name(name),
+          paths: cacheConfig.default.paths(name)
+        });
+      });
+    await Promise.all(restorePromises);
   }
 }
 

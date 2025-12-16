@@ -230,6 +230,15 @@ Default `false`.
     with:
       repository-cache: examples/gem/WORKSPACE
   ```
+
+  #### Store a repository cache from a list of custom locations
+  ```yaml
+  - uses: bazel-contrib/setup-bazel@0.15.0
+    with:
+      repository-cache: |
+        - MODULE.bazel
+        - requirements_locked.txt
+  ```
 </details>
 
 ## Migrating from [`bazelbuild/setup-bazelisk`][6]

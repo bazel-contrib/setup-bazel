@@ -6,7 +6,6 @@ const github = require('@actions/github')
 
 const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheVersion = core.getInput('cache-version')
-const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const moduleRoot = core.getInput('module-root')
 
 const homeDir = os.homedir()
@@ -59,8 +58,8 @@ if (diskCacheEnabled) {
   }
 }
 
-const repositoryCacheConfig = core.getInput('repository-cache')
-const repositoryCacheEnabled = repositoryCacheConfig !== 'false'
+const repositoryCacheConfig = yaml.parse(core.getInput('repository-cache'))
+const repositoryCacheEnabled = repositoryCacheConfig !== false
 let repositoryCacheFiles = [
   `${moduleRoot}/MODULE.bazel`,
   `${moduleRoot}/WORKSPACE.bazel`,
@@ -69,7 +68,7 @@ let repositoryCacheFiles = [
 ]
 if (repositoryCacheEnabled) {
   bazelrc.push(`common --repository_cache=${bazelRepository}`)
-  if (repositoryCacheConfig !== 'true') {
+  if (repositoryCacheConfig !== true) {
     repositoryCacheFiles = Array(repositoryCacheConfig).flat()
   }
 }
@@ -84,6 +83,7 @@ if (googleCredentials.length > 0 && !googleCredentialsSaved) {
   core.saveState('google-credentials-path', googleCredentialsPath)
 }
 
+const externalCacheConfig = yaml.parse(core.getInput('external-cache'))
 const bazelExternal = core.toPosixPath(`${bazelOutputBase}/external`)
 const externalCache = {}
 if (externalCacheConfig) {

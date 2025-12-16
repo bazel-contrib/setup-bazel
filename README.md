@@ -231,7 +231,7 @@ Default `false`.
       repository-cache: examples/gem/WORKSPACE
   ```
 
-  ### Store a repository cache from a list of custom locations
+  #### Store a repository cache from a list of custom locations
   ```yaml
   - uses: bazel-contrib/setup-bazel@0.15.0
     with:

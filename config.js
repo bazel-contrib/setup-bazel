@@ -52,7 +52,7 @@ const diskCacheConfig = core.getInput('disk-cache')
 const diskCacheEnabled = diskCacheConfig !== 'false'
 let diskCacheName = 'disk'
 if (diskCacheEnabled) {
-  bazelrc.push(`common --disk_cache=${bazelDisk}`)
+  bazelrc.push(`build --disk_cache=${bazelDisk}`)
   if (diskCacheName !== 'true') {
     diskCacheName = `${diskCacheName}-${diskCacheConfig}`
   }

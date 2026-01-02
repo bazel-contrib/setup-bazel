@@ -104219,9 +104219,10 @@ async function restoreCache(cacheConfig) {
   }
 
   const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
-  await index_setTimeout(delay, async function () {
-    core.startGroup(`Restore cache for ${cacheConfig.name}`)
+  await index_setTimeout(delay)
 
+  core.startGroup(`Restore cache for ${cacheConfig.name}`)
+  try {
     const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const name = cacheConfig.name
     const paths = cacheConfig.paths
@@ -104244,9 +104245,9 @@ async function restoreCache(cacheConfig) {
     } else {
       core.info(`Failed to restore ${name} cache`)
     }
-
+  } finally {
     core.endGroup()
-  }())
+  }
 }
 
 run()

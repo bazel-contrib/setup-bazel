@@ -104267,6 +104267,8 @@ async function restoreCache(cacheConfig) {
     } else {
       core.info(`Failed to restore ${name} cache`)
     }
+  } catch (err) {
+    core.info(`Failed to restore ${name} cache with error: ${err}`)
   } finally {
     core.endGroup()
   }

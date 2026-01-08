@@ -252,6 +252,7 @@ However, if you used a `bazel-version` input before, you will need to remove it 
 To build action, run the following command:
 
 ```sh
+$ npm install
 $ npm run build
 ```
 

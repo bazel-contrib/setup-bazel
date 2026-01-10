@@ -52,6 +52,9 @@ const diskCacheConfig = core.getInput('disk-cache')
 const diskCacheEnabled = diskCacheConfig !== 'false'
 let diskCacheName = 'disk'
 if (diskCacheEnabled) {
+  // Before Bazel 6.3, providing --disk_cache to common is an error,
+  // with Bazel 6.3 and onwards, common accepts any legal Bazel option
+  // https://github.com/bazelbuild/bazel/issues/3054
   bazelrc.push(`build --disk_cache=${bazelDisk}`)
   if (diskCacheName !== 'true') {
     diskCacheName = `${diskCacheName}-${diskCacheConfig}`

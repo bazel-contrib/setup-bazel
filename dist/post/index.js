@@ -11,6 +11,7 @@ const core = __nccwpck_require__(37484)
 const github = __nccwpck_require__(93228)
 
 const bazeliskVersion = core.getInput('bazelisk-version')
+const cacheSave = core.getBooleanInput('cache-save')
 const cacheVersion = core.getInput('cache-version')
 const moduleRoot = core.getInput('module-root')
 
@@ -143,6 +144,7 @@ core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
 
 module.exports = {
   baseCacheKey,
+  cacheSave,
   bazeliskCache: {
     enabled: core.getBooleanInput('bazelisk-cache'),
     files: [`${moduleRoot}/.bazelversion`],
@@ -103012,6 +103014,11 @@ async function run() {
 }
 
 async function saveCaches() {
+  if (!config.cacheSave) {
+    core.info('Cache saving is disabled (cache-save: false)')
+    return
+  }
+
   await saveCache(config.bazeliskCache)
   await saveCache(config.diskCache)
   await saveCache(config.repositoryCache)

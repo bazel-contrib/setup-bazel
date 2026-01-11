@@ -13,6 +13,10 @@ inputs:
     description: Extra contents to write to user .bazelrc
     required: false
     default: ""
+  cache-save:
+    description: Whether to save caches. Set to false for pull requests to allow restores but prevent saves.
+    required: false
+    default: "true"
   cache-version:
     description: Version of all caches
     required: false

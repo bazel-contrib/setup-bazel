@@ -83,6 +83,30 @@ Default `""`.
   ```
 </details>
 
+### `cache-save`
+
+Whether to save caches at the end of the workflow.
+
+Set to `false` for pull requests to allow cache restoration without saving,
+which prevents PRs from polluting the cache while still benefiting from it.
+
+Default `true`.
+
+<details>
+  <summary>Examples</summary>
+
+  #### Disable cache saving on pull requests
+
+  ```yaml
+  - uses: bazel-contrib/setup-bazel@0.16.0
+    with:
+      bazelisk-cache: true
+      disk-cache: ${{ github.workflow }}
+      repository-cache: true
+      cache-save: ${{ github.event_name != 'pull_request' }}
+  ```
+</details>
+
 ### `disk-cache`
 
 Enable [`disk_cache`][2] and store it on GitHub based on contents of `BUILD` files.

@@ -13,6 +13,11 @@ async function run() {
 }
 
 async function saveCaches() {
+  if (!config.cacheSave) {
+    core.info('Cache saving is disabled (cache-save: false)')
+    return
+  }
+
   await saveCache(config.bazeliskCache)
   await saveCache(config.diskCache)
   await saveCache(config.repositoryCache)

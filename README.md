@@ -131,7 +131,7 @@ Default `false`.
   ```yaml
   - uses: bazel-contrib/setup-bazel@0.18.0
     with:
-      disk-cache: ${{ github.workflow }}}
+      disk-cache: ${{ github.workflow }}
   ```
 </details>
 

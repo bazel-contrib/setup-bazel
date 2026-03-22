@@ -1,11 +1,12 @@
-const fs = require('fs')
-const { setTimeout } = require('timers/promises')
-const core = require('@actions/core')
-const cache = require('@actions/cache')
-const github = require('@actions/github')
-const glob = require('@actions/glob')
-const tc = require('@actions/tool-cache')
-const config = require('./config')
+import fs from 'fs'
+import { setTimeout } from 'timers/promises'
+import * as core from '@actions/core'
+import * as cache from '@actions/cache'
+import * as github from '@actions/github'
+import * as glob from '@actions/glob'
+import * as tc from '@actions/tool-cache'
+import config from './config.js'
+import { hashCacheContents } from './util.js'
 
 async function run() {
   try {
@@ -171,6 +172,14 @@ async function restoreCache(cacheConfig) {
 
     if (restoredKey) {
       core.info(`Successfully restored cache from ${restoredKey}`)
+      core.saveState(`${name}-restored-key`, restoredKey)
+
+      // Hash cache contents to detect changes after build
+      const contentHash = await hashCacheContents(paths[0])
+      if (contentHash) {
+        core.saveState(`${name}-content-hash`, contentHash)
+        core.debug(`${name} content hash: ${contentHash}`)
+      }
 
       if (restoredKey === key) {
         core.saveState(`${name}-cache-hit`, 'true')

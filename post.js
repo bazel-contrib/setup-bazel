@@ -1,11 +1,11 @@
-const fs = require('fs')
-const path = require('path')
-const cache = require('@actions/cache')
-const core = require('@actions/core')
-const glob = require('@actions/glob')
-const config = require('./config')
-const { getFolderSize } = require('./util')
-const process = require('node:process');
+import fs from 'fs'
+import path from 'path'
+import * as cache from '@actions/cache'
+import * as core from '@actions/core'
+import * as github from '@actions/github'
+import * as glob from '@actions/glob'
+import config from './config.js'
+import { getFolderSize, hashCacheContents } from './util.js'
 
 async function run() {
   await saveCaches()
@@ -65,27 +65,90 @@ async function saveExternalCaches(cacheConfig) {
   }
 }
 
+async function deleteCache(key) {
+  const token = core.getInput('token')
+  if (!token) {
+    core.warning('No token provided, cannot delete cache')
+    return false
+  }
+
+  try {
+    const octokit = github.getOctokit(token)
+    const { owner, repo } = github.context.repo
+
+    // Find cache by key
+    const { data: caches } = await octokit.rest.actions.getActionsCacheList({
+      owner,
+      repo,
+      key,  // exact match
+    })
+
+    if (caches.actions_caches && caches.actions_caches.length > 0) {
+      for (const cacheEntry of caches.actions_caches) {
+        if (cacheEntry.key === key) {
+          core.info(`Deleting outdated cache: ${key}`)
+          await octokit.rest.actions.deleteActionsCacheById({
+            owner,
+            repo,
+            cache_id: cacheEntry.id,
+          })
+          return true
+        }
+      }
+    }
+  } catch (error) {
+    core.warning(`Failed to delete cache ${key}: ${error.message}`)
+  }
+  return false
+}
+
 async function saveCache(cacheConfig) {
   if (!cacheConfig.enabled) {
     return
   }
 
-  const cacheHit = core.getState(`${cacheConfig.name}-cache-hit`)
-  core.debug(`${cacheConfig.name}-cache-hit is ${cacheHit}`)
-  if (cacheHit === 'true') {
+  const name = cacheConfig.name
+  const paths = cacheConfig.paths
+  const cacheHit = core.getState(`${name}-cache-hit`)
+  const restoredKey = core.getState(`${name}-restored-key`)
+  const originalContentHash = core.getState(`${name}-content-hash`)
+
+  core.debug(`${name}-cache-hit is ${cacheHit}`)
+  core.debug(`${name}-restored-key is ${restoredKey}`)
+  core.debug(`${name}-content-hash is ${originalContentHash}`)
+
+  // Check if cache contents changed since restore
+  let contentsChanged = false
+  if (originalContentHash) {
+    const currentContentHash = await hashCacheContents(paths[0])
+    core.debug(`${name} current content hash: ${currentContentHash}`)
+    contentsChanged = currentContentHash !== originalContentHash
+    if (contentsChanged) {
+      core.info(`Cache contents changed for ${name}`)
+    }
+  }
+
+  // Skip save if exact cache hit AND contents haven't changed
+  if (cacheHit === 'true' && !contentsChanged) {
+    core.info(`Cache hit and contents unchanged for ${name}, skipping save`)
     return
   }
 
   try {
-    core.startGroup(`Save cache for ${cacheConfig.name}`)
-    const paths = cacheConfig.paths
+    core.startGroup(`Save cache for ${name}`)
     const hash = await glob.hashFiles(
       cacheConfig.files.join('\n'),
       undefined,
       // We don't want to follow symlinks as it's extremely slow on macOS.
       { followSymbolicLinks: false }
     )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+    const key = `${config.baseCacheKey}-${name}-${hash}`
+
+    // If contents changed and we had a cache hit, delete the old cache first
+    if (contentsChanged && cacheHit === 'true' && restoredKey) {
+      await deleteCache(restoredKey)
+    }
+
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

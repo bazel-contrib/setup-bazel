@@ -3,11 +3,12 @@
   "version": "0.18.0",
   "description": "Install and configure Bazel for GitHub Actions",
   "main": "index.js",
+  "type": "module",
   "engines": {
     "node": "24.x"
   },
   "scripts": {
-    "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post",
+    "build": "esbuild index.js --bundle --platform=node --format=esm --outfile=dist/main/index.js --sourcemap && esbuild post.js --bundle --platform=node --format=esm --outfile=dist/post/index.js --sourcemap",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Alex Rodionov <p0deje@gmail.com>",
@@ -18,7 +19,7 @@
     "@actions/github": "^9.0.0",
     "@actions/glob": "^0.6.0",
     "@actions/tool-cache": "^4.0.0",
-    "@vercel/ncc": "^0.38.0",
+    "esbuild": "^0.27.4",
     "yaml": "^2.2.1"
   }
 }

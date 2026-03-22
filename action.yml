@@ -25,6 +25,10 @@ inputs:
     description: Cache actions outputs based on BUILD
     required: false
     default: "false"
+  disk-cache-reupload:
+    description: Re-upload disk cache when contents change. Set to false to skip re-uploads (useful when builds have non-deterministic outputs).
+    required: false
+    default: "true"
   external-cache:
     description: Cache external 10MB+ repositories based on MODULE.bazel/WORKSPACE
     required: false

@@ -88339,6 +88339,7 @@ const bazelrc = getMultilineInput('bazelrc');
 
 const diskCacheConfig = getInput('disk-cache');
 const diskCacheEnabled = diskCacheConfig !== 'false';
+const diskCacheReupload = getInput('disk-cache-reupload') !== 'false';
 let diskCacheName = 'disk';
 if (diskCacheEnabled) {
   // Before Bazel 6.3, providing --disk_cache to common is an error,
@@ -88437,6 +88438,7 @@ var config = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
+    reupload: diskCacheReupload,
     files: [
       ...repositoryCacheFiles,
       `${moduleRoot}/**/BUILD.bazel`,

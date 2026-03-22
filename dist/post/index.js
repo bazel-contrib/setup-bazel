@@ -87730,6 +87730,7 @@ const bazelrc = getMultilineInput('bazelrc');
 
 const diskCacheConfig = getInput('disk-cache');
 const diskCacheEnabled = diskCacheConfig !== 'false';
+const diskCacheReupload = getInput('disk-cache-reupload') !== 'false';
 let diskCacheName = 'disk';
 if (diskCacheEnabled) {
   // Before Bazel 6.3, providing --disk_cache to common is an error,
@@ -87828,6 +87829,7 @@ var config = {
   bazelrc,
   diskCache: {
     enabled: diskCacheEnabled,
+    reupload: diskCacheReupload,
     files: [
       ...repositoryCacheFiles,
       `${moduleRoot}/**/BUILD.bazel`,
@@ -88082,6 +88084,12 @@ async function saveCache(cacheConfig) {
   // Skip save if exact cache hit AND contents haven't changed
   if (cacheHit === 'true' && !contentsChanged) {
     info(`Cache hit and contents unchanged for ${name}, skipping save`);
+    return
+  }
+
+  // Skip re-upload if reupload is disabled and we had a cache hit (even if contents changed)
+  if (cacheConfig.reupload === false && cacheHit === 'true' && contentsChanged) {
+    info(`Cache contents changed for ${name}, but reupload is disabled - skipping save`);
     return
   }
 

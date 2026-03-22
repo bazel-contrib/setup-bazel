@@ -157,6 +157,12 @@ async function saveCache(cacheConfig) {
     return
   }
 
+  // Skip re-upload if reupload is disabled and we had a cache hit (even if contents changed)
+  if (cacheConfig.reupload === false && cacheHit === 'true' && contentsChanged) {
+    core.info(`Cache contents changed for ${name}, but reupload is disabled - skipping save`)
+    return
+  }
+
   try {
     core.startGroup(`Save cache for ${name}`)
     const hash = await glob.hashFiles(

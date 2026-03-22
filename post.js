@@ -112,7 +112,7 @@ async function saveCache(cacheConfig) {
   const cacheHit = core.getState(`${name}-cache-hit`)
   const restoredKey = core.getState(`${name}-restored-key`)
   const originalContentHash = core.getState(`${name}-content-hash`)
-  const originalFilesJson = core.getState(`${name}-content-files`)
+  const originalFilesPath = core.getState(`${name}-content-files-path`)
 
   core.debug(`${name}-cache-hit is ${cacheHit}`)
   core.debug(`${name}-restored-key is ${restoredKey}`)
@@ -128,8 +128,8 @@ async function saveCache(cacheConfig) {
       core.info(`Cache contents changed for ${name}`)
 
       // Log which files changed
-      if (originalFilesJson) {
-        const originalFiles = new Set(JSON.parse(originalFilesJson))
+      if (originalFilesPath && fs.existsSync(originalFilesPath)) {
+        const originalFiles = new Set(fs.readFileSync(originalFilesPath, 'utf8').split('\n'))
         const currentFilesSet = new Set(currentFiles)
 
         const added = currentFiles.filter(f => !originalFiles.has(f))

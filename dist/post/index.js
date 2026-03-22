@@ -88040,7 +88040,7 @@ async function saveCache(cacheConfig) {
   const cacheHit = getState(`${name}-cache-hit`);
   const restoredKey = getState(`${name}-restored-key`);
   const originalContentHash = getState(`${name}-content-hash`);
-  const originalFilesJson = getState(`${name}-content-files`);
+  const originalFilesPath = getState(`${name}-content-files-path`);
 
   debug(`${name}-cache-hit is ${cacheHit}`);
   debug(`${name}-restored-key is ${restoredKey}`);
@@ -88056,8 +88056,8 @@ async function saveCache(cacheConfig) {
       info(`Cache contents changed for ${name}`);
 
       // Log which files changed
-      if (originalFilesJson) {
-        const originalFiles = new Set(JSON.parse(originalFilesJson));
+      if (originalFilesPath && fs__default.existsSync(originalFilesPath)) {
+        const originalFiles = new Set(fs__default.readFileSync(originalFilesPath, 'utf8').split('\n'));
         const currentFilesSet = new Set(currentFiles);
 
         const added = currentFiles.filter(f => !originalFiles.has(f));

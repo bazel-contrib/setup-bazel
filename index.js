@@ -178,7 +178,10 @@ async function restoreCache(cacheConfig) {
       const { hash: contentHash, files } = await hashCacheContents(paths[0])
       if (contentHash) {
         core.saveState(`${name}-content-hash`, contentHash)
-        core.saveState(`${name}-content-files`, JSON.stringify(files))
+        // Write file list to temp file (too large for state)
+        const filesPath = `${process.env.RUNNER_TEMP}/${name}-content-files.txt`
+        fs.writeFileSync(filesPath, files.join('\n'))
+        core.saveState(`${name}-content-files-path`, filesPath)
         core.debug(`${name} content hash: ${contentHash}`)
       }
 

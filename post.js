@@ -112,6 +112,7 @@ async function saveCache(cacheConfig) {
   const cacheHit = core.getState(`${name}-cache-hit`)
   const restoredKey = core.getState(`${name}-restored-key`)
   const originalContentHash = core.getState(`${name}-content-hash`)
+  const originalFilesJson = core.getState(`${name}-content-files`)
 
   core.debug(`${name}-cache-hit is ${cacheHit}`)
   core.debug(`${name}-restored-key is ${restoredKey}`)
@@ -120,11 +121,31 @@ async function saveCache(cacheConfig) {
   // Check if cache contents changed since restore
   let contentsChanged = false
   if (originalContentHash) {
-    const currentContentHash = await hashCacheContents(paths[0])
+    const { hash: currentContentHash, files: currentFiles } = await hashCacheContents(paths[0])
     core.debug(`${name} current content hash: ${currentContentHash}`)
     contentsChanged = currentContentHash !== originalContentHash
     if (contentsChanged) {
       core.info(`Cache contents changed for ${name}`)
+
+      // Log which files changed
+      if (originalFilesJson) {
+        const originalFiles = new Set(JSON.parse(originalFilesJson))
+        const currentFilesSet = new Set(currentFiles)
+
+        const added = currentFiles.filter(f => !originalFiles.has(f))
+        const removed = [...originalFiles].filter(f => !currentFilesSet.has(f))
+
+        if (added.length > 0) {
+          core.info(`Files added (${added.length}):`)
+          added.slice(0, 50).forEach(f => core.info(`  + ${f}`))
+          if (added.length > 50) core.info(`  ... and ${added.length - 50} more`)
+        }
+        if (removed.length > 0) {
+          core.info(`Files removed (${removed.length}):`)
+          removed.slice(0, 50).forEach(f => core.info(`  - ${f}`))
+          if (removed.length > 50) core.info(`  ... and ${removed.length - 50} more`)
+        }
+      }
     }
   }
 

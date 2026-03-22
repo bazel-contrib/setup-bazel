@@ -88470,19 +88470,22 @@ var config = {
 /**
  * Hash cache contents by hashing the sorted list of filenames.
  * Works for Bazel's content-addressable caches where filenames ARE content hashes.
+ * Returns { hash, files } for comparison.
  */
 async function hashCacheContents(rootPath) {
   if (!fs__default.existsSync(rootPath)) {
-    return null
+    return { hash: null, files: [] }
   }
 
   const files = [];
   await collectFiles(rootPath, files);
   files.sort();
 
-  return crypto__default.createHash('sha256')
+  const hash = crypto__default.createHash('sha256')
     .update(files.join('\n'))
-    .digest('hex')
+    .digest('hex');
+
+  return { hash, files }
 }
 
 async function collectFiles(dirPath, files) {
@@ -88664,9 +88667,10 @@ async function restoreCache(cacheConfig) {
       saveState(`${name}-restored-key`, restoredKey);
 
       // Hash cache contents to detect changes after build
-      const contentHash = await hashCacheContents(paths[0]);
+      const { hash: contentHash, files } = await hashCacheContents(paths[0]);
       if (contentHash) {
         saveState(`${name}-content-hash`, contentHash);
+        saveState(`${name}-content-files`, JSON.stringify(files));
         debug(`${name} content hash: ${contentHash}`);
       }
 

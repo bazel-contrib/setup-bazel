@@ -87905,19 +87905,22 @@ function lstatSync(path, opts) {
 /**
  * Hash cache contents by hashing the sorted list of filenames.
  * Works for Bazel's content-addressable caches where filenames ARE content hashes.
+ * Returns { hash, files } for comparison.
  */
 async function hashCacheContents(rootPath) {
   if (!fs__default.existsSync(rootPath)) {
-    return null
+    return { hash: null, files: [] }
   }
 
   const files = [];
   await collectFiles(rootPath, files);
   files.sort();
 
-  return crypto__default.createHash('sha256')
+  const hash = crypto__default.createHash('sha256')
     .update(files.join('\n'))
-    .digest('hex')
+    .digest('hex');
+
+  return { hash, files }
 }
 
 async function collectFiles(dirPath, files) {
@@ -88037,6 +88040,7 @@ async function saveCache(cacheConfig) {
   const cacheHit = getState(`${name}-cache-hit`);
   const restoredKey = getState(`${name}-restored-key`);
   const originalContentHash = getState(`${name}-content-hash`);
+  const originalFilesJson = getState(`${name}-content-files`);
 
   debug(`${name}-cache-hit is ${cacheHit}`);
   debug(`${name}-restored-key is ${restoredKey}`);
@@ -88045,11 +88049,31 @@ async function saveCache(cacheConfig) {
   // Check if cache contents changed since restore
   let contentsChanged = false;
   if (originalContentHash) {
-    const currentContentHash = await hashCacheContents(paths[0]);
+    const { hash: currentContentHash, files: currentFiles } = await hashCacheContents(paths[0]);
     debug(`${name} current content hash: ${currentContentHash}`);
     contentsChanged = currentContentHash !== originalContentHash;
     if (contentsChanged) {
       info(`Cache contents changed for ${name}`);
+
+      // Log which files changed
+      if (originalFilesJson) {
+        const originalFiles = new Set(JSON.parse(originalFilesJson));
+        const currentFilesSet = new Set(currentFiles);
+
+        const added = currentFiles.filter(f => !originalFiles.has(f));
+        const removed = [...originalFiles].filter(f => !currentFilesSet.has(f));
+
+        if (added.length > 0) {
+          info(`Files added (${added.length}):`);
+          added.slice(0, 50).forEach(f => info(`  + ${f}`));
+          if (added.length > 50) info(`  ... and ${added.length - 50} more`);
+        }
+        if (removed.length > 0) {
+          info(`Files removed (${removed.length}):`);
+          removed.slice(0, 50).forEach(f => info(`  - ${f}`));
+          if (removed.length > 50) info(`  ... and ${removed.length - 50} more`);
+        }
+      }
     }
   }
 

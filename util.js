@@ -52,19 +52,22 @@ function lstatSync(path, opts) {
 /**
  * Hash cache contents by hashing the sorted list of filenames.
  * Works for Bazel's content-addressable caches where filenames ARE content hashes.
+ * Returns { hash, files } for comparison.
  */
 async function hashCacheContents(rootPath) {
   if (!fs.existsSync(rootPath)) {
-    return null
+    return { hash: null, files: [] }
   }
 
   const files = []
   await collectFiles(rootPath, files)
   files.sort()
 
-  return crypto.createHash('sha256')
+  const hash = crypto.createHash('sha256')
     .update(files.join('\n'))
     .digest('hex')
+
+  return { hash, files }
 }
 
 async function collectFiles(dirPath, files) {

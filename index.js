@@ -175,9 +175,10 @@ async function restoreCache(cacheConfig) {
       core.saveState(`${name}-restored-key`, restoredKey)
 
       // Hash cache contents to detect changes after build
-      const contentHash = await hashCacheContents(paths[0])
+      const { hash: contentHash, files } = await hashCacheContents(paths[0])
       if (contentHash) {
         core.saveState(`${name}-content-hash`, contentHash)
+        core.saveState(`${name}-content-files`, JSON.stringify(files))
         core.debug(`${name} content hash: ${contentHash}`)
       }
 

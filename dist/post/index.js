@@ -88049,7 +88049,9 @@ async function saveCache(cacheConfig) {
   // Check if cache contents changed since restore
   let contentsChanged = false;
   if (originalContentHash) {
-    const { hash: currentContentHash, files: currentFiles } = await hashCacheContents(paths[0]);
+    // For disk cache, only track cas/ (actual outputs), not ac/ (action cache mappings)
+    const hashPath = name.startsWith('disk') ? `${paths[0]}/cas` : paths[0];
+    const { hash: currentContentHash, files: currentFiles } = await hashCacheContents(hashPath);
     debug(`${name} current content hash: ${currentContentHash}`);
     contentsChanged = currentContentHash !== originalContentHash;
     if (contentsChanged) {

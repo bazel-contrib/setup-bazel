@@ -88667,7 +88667,9 @@ async function restoreCache(cacheConfig) {
       saveState(`${name}-restored-key`, restoredKey);
 
       // Hash cache contents to detect changes after build
-      const { hash: contentHash, files } = await hashCacheContents(paths[0]);
+      // For disk cache, only track cas/ (actual outputs), not ac/ (action cache mappings)
+      const hashPath = name.startsWith('disk') ? `${paths[0]}/cas` : paths[0];
+      const { hash: contentHash, files } = await hashCacheContents(hashPath);
       if (contentHash) {
         saveState(`${name}-content-hash`, contentHash);
         // Write file list to temp file (too large for state)

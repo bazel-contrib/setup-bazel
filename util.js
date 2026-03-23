@@ -1,8 +1,8 @@
 // https://www.npmjs.com/package/get-folder-size
 // Adapted for CommonJS and synchronous Filesystem calls.
 
-const fs = require('fs')
-const path = require('path')
+import fs from 'fs'
+import path from 'path'
 
 async function getFolderSize (rootItemPath, options = {}) {
   const fileSizes = new Map()
@@ -48,4 +48,4 @@ function lstatSync(path, opts) {
   }
 }
 
-module.exports = { getFolderSize }
+export { getFolderSize }

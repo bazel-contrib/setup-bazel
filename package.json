@@ -3,6 +3,7 @@
   "version": "0.18.0",
   "description": "Install and configure Bazel for GitHub Actions",
   "main": "index.js",
+  "type": "module",
   "engines": {
     "node": "24.x"
   },

@@ -1,8 +1,8 @@
-const fs = require('fs')
-const os = require('os')
-const yaml = require('yaml')
-const core = require('@actions/core')
-const github = require('@actions/github')
+import fs from 'fs'
+import os from 'os'
+import yaml from 'yaml'
+import * as core from '@actions/core'
+import * as github from '@actions/github'
 
 const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheSave = core.getBooleanInput('cache-save')
@@ -136,7 +136,7 @@ if (externalCacheConfig) {
 const token = core.getInput('token')
 core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
 
-module.exports = {
+export default {
   baseCacheKey,
   cacheSave,
   bazeliskCache: {

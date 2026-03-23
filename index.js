@@ -1,11 +1,11 @@
-const fs = require('fs')
-const { setTimeout } = require('timers/promises')
-const core = require('@actions/core')
-const cache = require('@actions/cache')
-const github = require('@actions/github')
-const glob = require('@actions/glob')
-const tc = require('@actions/tool-cache')
-const config = require('./config')
+import fs from 'fs'
+import { setTimeout } from 'timers/promises'
+import * as core from '@actions/core'
+import * as cache from '@actions/cache'
+import * as github from '@actions/github'
+import * as glob from '@actions/glob'
+import * as tc from '@actions/tool-cache'
+import config from './config.js'
 
 async function run() {
   try {

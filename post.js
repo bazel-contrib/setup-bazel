@@ -1,11 +1,10 @@
-const fs = require('fs')
-const path = require('path')
-const cache = require('@actions/cache')
-const core = require('@actions/core')
-const glob = require('@actions/glob')
-const config = require('./config')
-const { getFolderSize } = require('./util')
-const process = require('node:process');
+import fs from 'fs'
+import path from 'path'
+import * as cache from '@actions/cache'
+import * as core from '@actions/core'
+import * as glob from '@actions/glob'
+import config from './config.js'
+import { getFolderSize } from './util.js'
 
 async function run() {
   await saveCaches()

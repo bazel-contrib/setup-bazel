@@ -6,7 +6,7 @@ and provides an advanced fine-grained caching to improve workflows performance.
 ## Usage
 
 ```yaml
-- uses: bazel-contrib/setup-bazel@0.18.0
+- uses: bazel-contrib/setup-bazel@0.19.0
   with:
     # Avoid downloading Bazel every time.
     bazelisk-cache: true
@@ -61,7 +61,7 @@ Default `""`.
   #### Install Bazelisk 1.x
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       bazelisk-version: 1.x
   ```
@@ -69,7 +69,7 @@ Default `""`.
   #### Install exact Bazelisk version
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       bazelisk-version: 1.19.0
   ```
@@ -89,7 +89,7 @@ Default `""`.
   #### Enable Bzlmod
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       bazelrc: common --enable_bzlmod
   ```
@@ -97,7 +97,7 @@ Default `""`.
   #### Add colors and timestamps
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       bazelrc: |
         build --color=yes
@@ -120,7 +120,7 @@ Default `true`.
   #### Disable cache saving on pull requests
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       bazelisk-cache: true
       disk-cache: ${{ github.workflow }}
@@ -143,7 +143,7 @@ Default `false`.
   #### Share a single disk cache
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       disk-cache: true
   ```
@@ -151,7 +151,7 @@ Default `false`.
   #### Separate disk caches between workflows
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       disk-cache: ${{ github.workflow }}
   ```
@@ -175,7 +175,7 @@ Default `false`.
   #### Enable external repositories caches
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       external-cache: true
   ```
@@ -183,7 +183,7 @@ Default `false`.
   #### Cache NPM repositories based on `package-lock.json` contents
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       external-cache: |
         manifest:
@@ -193,7 +193,7 @@ Default `false`.
   #### Do not cache Ruby on Windows
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       external-cache: |
         manifest:
@@ -213,7 +213,7 @@ Default `""`.
   #### Authenticate via key
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       google-credentials: ${{ secrets.GOOGLE_CLOUD_KEY }}
   ```
@@ -244,7 +244,7 @@ Default is one of the following:
   #### Use `C` drive letter
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       output-base: C:/_bazel
   ```
@@ -264,7 +264,7 @@ Default `false`.
   #### Store a single repository cache
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       repository-cache: true
   ```
@@ -272,14 +272,14 @@ Default `false`.
   #### Store a repository cache from a custom location
 
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       repository-cache: examples/gem/WORKSPACE
   ```
 
   #### Store a repository cache from a list of custom locations
   ```yaml
-  - uses: bazel-contrib/setup-bazel@0.18.0
+  - uses: bazel-contrib/setup-bazel@0.19.0
     with:
       repository-cache: |
         - MODULE.bazel

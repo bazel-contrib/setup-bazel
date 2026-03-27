@@ -155,9 +155,9 @@ async function restoreCache(cacheConfig) {
   await setTimeout(delay)
 
   core.startGroup(`Restore cache for ${cacheConfig.name}`)
+  const name = cacheConfig.name
   try {
     const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
-    const name = cacheConfig.name
     const paths = cacheConfig.paths
     const restoreKey = `${config.baseCacheKey}-${name}-`
     const key = `${restoreKey}${hash}`

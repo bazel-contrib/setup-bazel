@@ -1,8 +1,9 @@
 // https://www.npmjs.com/package/get-folder-size
-// Adapted for CommonJS and synchronous Filesystem calls.
+// Adapted for ESM and synchronous Filesystem calls.
 
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 
 async function getFolderSize (rootItemPath, options = {}) {
   const fileSizes = new Map()
@@ -48,4 +49,37 @@ function lstatSync(path, opts) {
   }
 }
 
-export { getFolderSize }
+/**
+ * Hash cache contents by hashing the sorted list of filenames.
+ * Works for Bazel's content-addressable caches where filenames ARE content hashes.
+ * Returns { hash, files } for comparison.
+ */
+async function hashCacheContents(rootPath) {
+  if (!fs.existsSync(rootPath)) {
+    return { hash: null, files: [] }
+  }
+
+  const files = []
+  await collectFiles(rootPath, files)
+  files.sort()
+
+  const hash = crypto.createHash('sha256')
+    .update(files.join('\n'))
+    .digest('hex')
+
+  return { hash, files }
+}
+
+async function collectFiles(dirPath, files) {
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name)
+    if (entry.isDirectory()) {
+      await collectFiles(fullPath, files)
+    } else {
+      files.push(fullPath)
+    }
+  }
+}
+
+export { getFolderSize, hashCacheContents }

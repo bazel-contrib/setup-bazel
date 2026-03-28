@@ -16,6 +16,28 @@ and provides an advanced fine-grained caching to improve workflows performance.
     repository-cache: true
 ```
 
+## Permissions
+
+This action requires `actions: write` permission to update caches when their contents change.
+Add this to your workflow file:
+
+```yaml
+permissions:
+  actions: write
+  contents: read
+```
+
+## Iterative Cache Updates
+
+The `disk-cache` and `repository-cache` are updated iteratively. When Bazel adds new
+artifacts to the cache during a build, the action detects the changes and updates
+the stored cache. This ensures subsequent runs benefit from all cached artifacts,
+not just those from the initial cache creation.
+
+This works by hashing the list of files in the cache directory before and after the
+build. Since Bazel uses content-addressable storage (filenames are content hashes),
+new artifacts result in new filenames, which changes the overall hash.
+
 ## Inputs
 
 ### `bazelisk-cache`

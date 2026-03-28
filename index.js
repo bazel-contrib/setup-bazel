@@ -6,6 +6,7 @@ import * as github from '@actions/github'
 import * as glob from '@actions/glob'
 import * as tc from '@actions/tool-cache'
 import config from './config.js'
+import { hashCacheContents } from './util.js'
 
 async function run() {
   try {
@@ -171,6 +172,18 @@ async function restoreCache(cacheConfig) {
 
     if (restoredKey) {
       core.info(`Successfully restored cache from ${restoredKey}`)
+      core.saveState(`${name}-restored-key`, restoredKey)
+
+      // Hash cache contents to detect changes after build
+      const { hash: contentHash, files } = await hashCacheContents(paths[0])
+      if (contentHash) {
+        core.saveState(`${name}-content-hash`, contentHash)
+        // Write file list to temp file (too large for state)
+        const filesPath = `${process.env.RUNNER_TEMP}/${name}-content-files.txt`
+        fs.writeFileSync(filesPath, files.join('\n'))
+        core.saveState(`${name}-content-files-path`, filesPath)
+        core.debug(`${name} content hash: ${contentHash}`)
+      }
 
       if (restoredKey === key) {
         core.saveState(`${name}-cache-hit`, 'true')

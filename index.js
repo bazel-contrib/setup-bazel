@@ -164,10 +164,24 @@ async function restoreCache(cacheConfig) {
 
     core.debug(`Attempting to restore ${name} cache from ${key}`)
 
-    const restoredKey = await cache.restoreCache(
+    const restorePromise = cache.restoreCache(
       paths, key, [restoreKey],
-      { segmentTimeoutInMs: 300000 } // 5 minutes
+      { segmentTimeoutInMs: 300000 } // 5 minutes per download segment
     )
+
+    let restoredKey
+    if (config.cacheRestoreTimeoutMs > 0) {
+      restoredKey = await Promise.race([
+        restorePromise,
+        setTimeout(config.cacheRestoreTimeoutMs).then(() => {
+          throw new Error(
+            `Timed out restoring ${name} cache after ${config.cacheRestoreTimeoutMs}ms`
+          )
+        })
+      ])
+    } else {
+      restoredKey = await restorePromise
+    }
 
     if (restoredKey) {
       core.info(`Successfully restored cache from ${restoredKey}`)

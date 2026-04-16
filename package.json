@@ -8,7 +8,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "ncc build index.js -s -o dist/main && ncc build post.js -s -o dist/post",
+    "build": "rollup -c",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Alex Rodionov <p0deje@gmail.com>",
@@ -19,7 +19,12 @@
     "@actions/github": "^9.0.0",
     "@actions/glob": "^0.6.0",
     "@actions/tool-cache": "^4.0.0",
-    "@vercel/ncc": "^0.38.0",
     "yaml": "^2.2.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^29.0.2",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "rollup": "^4.60.0"
   }
 }

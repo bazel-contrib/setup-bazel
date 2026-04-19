@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { setTimeout } from 'timers/promises'
+import { setTimeout as sleep } from 'timers/promises'
 import * as core from '@actions/core'
 import * as cache from '@actions/cache'
 import * as github from '@actions/github'
@@ -152,7 +152,7 @@ async function restoreCache(cacheConfig) {
   }
 
   const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
-  await setTimeout(delay)
+  await sleep(delay)
 
   core.startGroup(`Restore cache for ${cacheConfig.name}`)
   const name = cacheConfig.name
@@ -171,14 +171,23 @@ async function restoreCache(cacheConfig) {
 
     let restoredKey
     if (config.cacheRestoreTimeoutMs > 0) {
-      restoredKey = await Promise.race([
-        restorePromise,
-        setTimeout(config.cacheRestoreTimeoutMs).then(() => {
-          throw new Error(
+      // Use a cancellable callback-based timer so that when restorePromise wins
+      // the race we can clearTimeout the pending reject — otherwise it would
+      // fire later and surface as an unhandled promise rejection.
+      let timeoutHandle
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error(
             `Timed out restoring ${name} cache after ${config.cacheRestoreTimeoutMs}ms`
-          )
-        })
-      ])
+          ))
+        }, config.cacheRestoreTimeoutMs)
+      })
+
+      try {
+        restoredKey = await Promise.race([restorePromise, timeoutPromise])
+      } finally {
+        clearTimeout(timeoutHandle)
+      }
     } else {
       restoredKey = await restorePromise
     }

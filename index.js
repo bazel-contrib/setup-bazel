@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { setTimeout as sleep } from 'timers/promises'
+import { setTimeout } from 'timers/promises'
 import * as core from '@actions/core'
 import * as cache from '@actions/cache'
 import * as github from '@actions/github'
@@ -152,7 +152,7 @@ async function restoreCache(cacheConfig) {
   }
 
   const delay = Math.random() * 1000 // timeout <= 1 sec to reduce 429 errors
-  await sleep(delay)
+  await setTimeout(delay)
 
   core.startGroup(`Restore cache for ${cacheConfig.name}`)
   const name = cacheConfig.name
@@ -172,7 +172,7 @@ async function restoreCache(cacheConfig) {
     let restoredKey
     if (config.cacheRestoreTimeoutMs > 0) {
       const ac = new AbortController()
-      const timeoutPromise = sleep(config.cacheRestoreTimeoutMs, null, { signal: ac.signal })
+      const timeoutPromise = setTimeout(config.cacheRestoreTimeoutMs, null, { signal: ac.signal })
         .then(() => { throw new Error(`Timed out restoring ${name} cache after ${config.cacheRestoreTimeoutMs}ms`) })
       timeoutPromise.catch(() => {})
 

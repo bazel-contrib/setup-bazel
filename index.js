@@ -171,22 +171,15 @@ async function restoreCache(cacheConfig) {
 
     let restoredKey
     if (config.cacheRestoreTimeoutMs > 0) {
-      // Use a cancellable callback-based timer so that when restorePromise wins
-      // the race we can clearTimeout the pending reject — otherwise it would
-      // fire later and surface as an unhandled promise rejection.
-      let timeoutHandle
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          reject(new Error(
-            `Timed out restoring ${name} cache after ${config.cacheRestoreTimeoutMs}ms`
-          ))
-        }, config.cacheRestoreTimeoutMs)
-      })
+      const ac = new AbortController()
+      const timeoutPromise = sleep(config.cacheRestoreTimeoutMs, null, { signal: ac.signal })
+        .then(() => { throw new Error(`Timed out restoring ${name} cache after ${config.cacheRestoreTimeoutMs}ms`) })
+      timeoutPromise.catch(() => {})
 
       try {
         restoredKey = await Promise.race([restorePromise, timeoutPromise])
       } finally {
-        clearTimeout(timeoutHandle)
+        ac.abort()
       }
     } else {
       restoredKey = await restorePromise

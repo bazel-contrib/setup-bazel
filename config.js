@@ -5,6 +5,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 
 const bazeliskVersion = core.getInput('bazelisk-version')
+const cacheOptimized = core.getBooleanInput('cache-optimized')
 const cacheSave = core.getBooleanInput('cache-save')
 const cacheVersion = core.getInput('cache-version')
 const moduleRoot = core.getInput('module-root')
@@ -136,6 +137,10 @@ if (externalCacheConfig) {
 const token = core.getInput('token')
 core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
 
+// Save token and optimized flag for post step
+core.saveState('token', token)
+core.saveState('cache-optimized', cacheOptimized.toString())
+
 export default {
   baseCacheKey,
   cacheSave,
@@ -155,6 +160,7 @@ export default {
       `${moduleRoot}/**/BUILD`
     ],
     name: diskCacheName,
+    optimized: cacheOptimized,
     paths: [bazelDisk]
   },
   externalCache,
@@ -171,6 +177,7 @@ export default {
     enabled: repositoryCacheEnabled,
     files: repositoryCacheFiles,
     name: 'repository',
+    optimized: cacheOptimized,
     paths: [bazelRepository]
   },
 }

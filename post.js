@@ -4,7 +4,7 @@ import * as cache from '@actions/cache'
 import * as core from '@actions/core'
 import * as glob from '@actions/glob'
 import config from './config.js'
-import { getFolderSize } from './util.js'
+import { getFolderSize, deleteOldCaches } from './util.js'
 
 async function run() {
   await saveCaches()
@@ -69,22 +69,47 @@ async function saveCache(cacheConfig) {
     return
   }
 
-  const cacheHit = core.getState(`${cacheConfig.name}-cache-hit`)
-  core.debug(`${cacheConfig.name}-cache-hit is ${cacheHit}`)
-  if (cacheHit === 'true') {
-    return
+  // In optimized mode, always save (no cache-hit skip since key is always unique)
+  if (!cacheConfig.optimized) {
+    const cacheHit = core.getState(`${cacheConfig.name}-cache-hit`)
+    core.debug(`${cacheConfig.name}-cache-hit is ${cacheHit}`)
+    if (cacheHit === 'true') {
+      return
+    }
   }
 
   try {
     core.startGroup(`Save cache for ${cacheConfig.name}`)
     const paths = cacheConfig.paths
-    const hash = await glob.hashFiles(
-      cacheConfig.files.join('\n'),
-      undefined,
-      // We don't want to follow symlinks as it's extremely slow on macOS.
-      { followSymbolicLinks: false }
-    )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+    const restoreKey = `${config.baseCacheKey}-${cacheConfig.name}-`
+
+    let key
+    if (cacheConfig.optimized) {
+      // Use timestamp for unique key
+      key = `${restoreKey}${Date.now()}`
+
+      // Delete old caches before saving
+      const token = core.getState('token')
+      if (token) {
+        core.info(`Deleting old caches matching prefix: ${restoreKey}`)
+        try {
+          const deleted = await deleteOldCaches(token, restoreKey)
+          core.info(`Deleted ${deleted} old cache(s)`)
+        } catch (err) {
+          core.warning(`Failed to delete old caches: ${err.message}`)
+        }
+      } else {
+        core.warning('No token available for cache cleanup')
+      }
+    } else {
+      const hash = await glob.hashFiles(
+        cacheConfig.files.join('\n'),
+        undefined,
+        { followSymbolicLinks: false }
+      )
+      key = `${restoreKey}${hash}`
+    }
+
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

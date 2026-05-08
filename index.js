@@ -157,10 +157,18 @@ async function restoreCache(cacheConfig) {
   core.startGroup(`Restore cache for ${cacheConfig.name}`)
   const name = cacheConfig.name
   try {
-    const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const paths = cacheConfig.paths
     const restoreKey = `${config.baseCacheKey}-${name}-`
-    const key = `${restoreKey}${hash}`
+
+    let key
+    if (cacheConfig.optimized) {
+      // In optimized mode, we don't use a hash-based key for exact match.
+      // We rely entirely on the restore key prefix to get the most recent cache.
+      key = restoreKey
+    } else {
+      const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
+      key = `${restoreKey}${hash}`
+    }
 
     core.debug(`Attempting to restore ${name} cache from ${key}`)
 
@@ -172,7 +180,7 @@ async function restoreCache(cacheConfig) {
     if (restoredKey) {
       core.info(`Successfully restored cache from ${restoredKey}`)
 
-      if (restoredKey === key) {
+      if (!cacheConfig.optimized && restoredKey === key) {
         core.saveState(`${name}-cache-hit`, 'true')
       }
     } else {

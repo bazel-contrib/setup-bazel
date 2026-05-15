@@ -45,6 +45,10 @@ inputs:
     description: Cache repositories based on MODULE.bazel/WORKSPACE
     required: false
     default: "false"
+  cache-restore-timeout:
+    description: Timeout in milliseconds for each cache restore operation (download + extraction). Set to 0 to disable.
+    required: false
+    default: "0"
   token:
     description: GitHub token to query Bazelisk releases
     required: false

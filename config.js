@@ -133,12 +133,15 @@ if (externalCacheConfig) {
   }
 }
 
+const cacheRestoreTimeoutMs = parseInt(core.getInput('cache-restore-timeout')) || 0
+
 const token = core.getInput('token')
 core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
 
 export default {
   baseCacheKey,
   cacheSave,
+  cacheRestoreTimeoutMs,
   bazeliskCache: {
     enabled: core.getBooleanInput('bazelisk-cache'),
     files: [`${moduleRoot}/.bazelversion`],

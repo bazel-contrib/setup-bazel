@@ -17,6 +17,10 @@ inputs:
     description: Whether to save caches. Set to false for pull requests to allow restores but prevent saves.
     required: false
     default: "true"
+  cache-replace:
+    description: Delete prior caches with the same prefix before saving. Requires actions write permission.
+    required: false
+    default: "false"
   cache-version:
     description: Version of all caches
     required: false

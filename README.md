@@ -107,6 +107,29 @@ Default `true`.
   ```
 </details>
 
+### `cache-replace`
+
+Before saving each cache, delete any prior entries with the same prefix on the current ref. Frees quota by removing superseded caches immediately instead of waiting for GitHub's LRU eviction. Requires `actions: write` permission on the workflow token. Only takes effect when `cache-save: true`.
+
+Default `false`.
+
+<details>
+  <summary>Examples</summary>
+
+  #### Clean up superseded caches on the default branch
+
+  ```yaml
+  permissions:
+    actions: write
+  steps:
+    - uses: bazel-contrib/setup-bazel@0.19.0
+      with:
+        disk-cache: ${{ github.workflow }}
+        cache-save: ${{ github.ref == 'refs/heads/main' }}
+        cache-replace: ${{ github.ref == 'refs/heads/main' }}
+  ```
+</details>
+
 ### `disk-cache`
 
 Enable [`disk_cache`][2] and store it on GitHub based on contents of `BUILD` files.

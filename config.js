@@ -6,6 +6,7 @@ import * as github from '@actions/github'
 
 const bazeliskVersion = core.getInput('bazelisk-version')
 const cacheSave = core.getBooleanInput('cache-save')
+const cacheReplace = core.getBooleanInput('cache-replace')
 const cacheVersion = core.getInput('cache-version')
 const moduleRoot = core.getInput('module-root')
 
@@ -141,6 +142,7 @@ core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
 export default {
   baseCacheKey,
   cacheSave,
+  cacheReplace,
   cacheRestoreTimeoutMs,
   bazeliskCache: {
     enabled: core.getBooleanInput('bazelisk-cache'),

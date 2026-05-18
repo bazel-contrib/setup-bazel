@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import * as cache from '@actions/cache'
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import * as glob from '@actions/glob'
 import config from './config.js'
 import { getFolderSize } from './util.js'
@@ -85,13 +86,47 @@ async function saveCache(cacheConfig) {
       { followSymbolicLinks: false }
     )
     const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
-    core.debug(`Attempting to save ${paths} cache to ${key}`)
-    await cache.saveCache(paths, key)
-    core.info('Successfully saved cache')
-  } catch (error) {
-    core.warning(error.stack)
+
+    if (config.cacheReplace) {
+      const prefix = `${config.baseCacheKey}-${cacheConfig.name}-`
+      await deleteCachesByPrefix(prefix)
+    }
+
+    try {
+      core.debug(`Attempting to save ${paths} cache to ${key}`)
+      await cache.saveCache(paths, key)
+      core.info('Successfully saved cache')
+    } catch (error) {
+      core.warning(error.stack)
+    }
   } finally {
     core.endGroup()
+  }
+}
+
+async function deleteCachesByPrefix(prefix) {
+  const token = process.env.BAZELISK_GITHUB_TOKEN
+  const octokit = github.getOctokit(token)
+  const { owner, repo } = github.context.repo
+  const ref = github.context.ref
+  core.debug(`Deleting caches with prefix ${prefix} on ref ${ref}`)
+
+  try {
+    const { data } = await octokit.rest.actions.getActionsCacheList({
+      owner, repo, key: prefix, ref
+    })
+    const prefixMatches = data.actions_caches || []
+    for (const entry of prefixMatches) {
+      await octokit.rest.actions.deleteActionsCacheById({
+        owner, repo, cache_id: entry.id
+      })
+      core.info(`Deleted prior cache ${entry.key}`)
+    }
+  } catch (error) {
+    if (error.status === 403) {
+      throw new Error('cache-replace requires `actions: write` permission. Add `permissions: actions: write` to your workflow or job.')
+    }
+    throw error
   }
 }
 

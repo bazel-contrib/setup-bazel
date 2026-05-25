@@ -265,6 +265,32 @@ Default `false`.
   ```
 </details>
 
+### `repo-contents-cache`
+
+Bazel 8+ keeps a [repo contents cache][11] (the *extracted* external repository
+directories) under `${repository_cache}/contents`. Persisting it can save
+re-extraction and repo-rule evaluation across runs, so it is included in the
+saved repository cache by default, but its primary benefit (sharing extracted
+repos across workspaces on one machine) doesn't apply to a CI runner.
+
+Set this to `false` to exclude that directory from the saved cache. 
+Has no effect unless`repository-cache` is enabled.
+
+Default `true`.
+
+<details>
+  <summary>Examples</summary>
+
+  #### Exclude the repo contents cache from the saved cache
+
+  ```yaml
+  - uses: bazel-contrib/setup-bazel@0.19.0
+    with:
+      repository-cache: true
+      repo-contents-cache: false
+  ```
+</details>
+
 ## Migrating from [`bazelbuild/setup-bazelisk`][6]
 
 You can simply replace `bazelbuild/setup-bazelisk` action with `bazel-contrib/setup-bazel`.
@@ -295,3 +321,4 @@ Use [Release][10] workflow to cut a new release.
 [8]: https://github.com/actions/runner-images/pull/490
 [9]: https://bazel.build/reference/command-line-reference#flag--google_credentials
 [10]: https://github.com/bazel-contrib/setup-bazel/actions/workflows/release.yml
+[11]: https://bazel.build/reference/command-line-reference#flag--repo_contents_cache

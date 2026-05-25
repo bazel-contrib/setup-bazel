@@ -64,6 +64,7 @@ if (diskCacheEnabled) {
 
 const repositoryCacheConfig = yaml.parse(core.getInput('repository-cache'))
 const repositoryCacheEnabled = repositoryCacheConfig !== false
+const repoContentsCacheEnabled = core.getBooleanInput('repo-contents-cache')
 let repositoryCacheFiles = [
   `${moduleRoot}/MODULE.bazel`,
   `${moduleRoot}/WORKSPACE.bazel`,
@@ -76,6 +77,10 @@ if (repositoryCacheEnabled) {
     repositoryCacheFiles = Array(repositoryCacheConfig).flat()
   }
 }
+
+let repositoryCachePaths = repoContentsCacheEnabled
+  ? [bazelRepository]
+  : [`${bazelRepository}/content_addressable`]
 
 const googleCredentials = core.getInput('google-credentials')
 const googleCredentialsSaved = (core.getState('google-credentials-path').length > 0)
@@ -174,6 +179,6 @@ export default {
     enabled: repositoryCacheEnabled,
     files: repositoryCacheFiles,
     name: 'repository',
-    paths: [bazelRepository]
+    paths: repositoryCachePaths
   },
 }

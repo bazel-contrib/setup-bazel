@@ -45,6 +45,10 @@ inputs:
     description: Cache repositories based on MODULE.bazel/WORKSPACE
     required: false
     default: "false"
+  repo-contents-cache:
+    description: Persist the Bazel repo contents cache. Has no effect unless repository-cache is enabled.
+    required: false
+    default: "true"
   cache-restore-timeout:
     description: Timeout in milliseconds for each cache restore operation (download + extraction). Set to 0 to disable.
     required: false

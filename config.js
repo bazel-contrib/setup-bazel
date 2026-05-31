@@ -138,6 +138,7 @@ const cacheRestoreTimeoutMs = parseInt(core.getInput('cache-restore-timeout')) |
 
 const token = core.getInput('token')
 core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
+core.saveState('token', token)
 
 export default {
   baseCacheKey,

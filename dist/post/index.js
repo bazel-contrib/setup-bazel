@@ -102330,6 +102330,7 @@ const cacheRestoreTimeoutMs = parseInt(core.getInput('cache-restore-timeout')) |
 
 const token = core.getInput('token')
 core.exportVariable('BAZELISK_GITHUB_TOKEN', token)
+core.saveState('token', token)
 
 /* harmony default export */ const config = ({
   baseCacheKey,
@@ -102533,7 +102534,7 @@ async function saveCache(cacheConfig) {
 }
 
 async function deleteCachesByPrefix(prefix) {
-  const token = process.env.BAZELISK_GITHUB_TOKEN
+  const token = core.getState('token')
   const octokit = github.getOctokit(token)
   const { owner, repo } = github.context.repo
   const ref = github.context.ref

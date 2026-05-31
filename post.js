@@ -105,7 +105,7 @@ async function saveCache(cacheConfig) {
 }
 
 async function deleteCachesByPrefix(prefix) {
-  const token = process.env.BAZELISK_GITHUB_TOKEN
+  const token = core.getState('token')
   const octokit = github.getOctokit(token)
   const { owner, repo } = github.context.repo
   const ref = github.context.ref

@@ -24,6 +24,12 @@ async function setupBazel() {
   core.endGroup()
 
   await setupBazelisk()
+
+  if (config.skipCacheRestore) {
+    core.info('Skipping cache restore (skip-cache-restore: true)')
+    return
+  }
+
   await restoreCache(config.bazeliskCache)
   await restoreCache(config.diskCache)
   await restoreCache(config.repositoryCache)

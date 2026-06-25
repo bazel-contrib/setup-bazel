@@ -107,6 +107,28 @@ Default `true`.
   ```
 </details>
 
+### `skip-cache-restore`
+
+Skip restoring caches at setup time while still allowing caches to be saved in the post step.
+This is useful when you want to force a clean build and publish fresh caches.
+
+Default `false`.
+
+<details>
+  <summary>Examples</summary>
+
+  #### Build fresh caches
+
+  ```yaml
+  - uses: bazel-contrib/setup-bazel@0.19.0
+    with:
+      bazelisk-cache: true
+      disk-cache: ${{ github.workflow }}
+      repository-cache: true
+      skip-cache-restore: true
+  ```
+</details>
+
 ### `disk-cache`
 
 Enable [`disk_cache`][2] and store it on GitHub based on contents of `BUILD` files.

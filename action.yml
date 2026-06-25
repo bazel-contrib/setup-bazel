@@ -17,6 +17,10 @@ inputs:
     description: Whether to save caches. Set to false for pull requests to allow restores but prevent saves.
     required: false
     default: "true"
+  skip-cache-restore:
+    description: Whether to skip restoring caches. Useful for creating fresh caches while still saving at the end.
+    required: false
+    default: "false"
   cache-version:
     description: Version of all caches
     required: false

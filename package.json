@@ -19,7 +19,7 @@
     "@actions/github": "^9.0.0",
     "@actions/glob": "^0.7.0",
     "@actions/tool-cache": "^4.0.0",
-    "@vercel/ncc": "^0.38.0",
+    "@vercel/ncc": "^0.44.0",
     "yaml": "^2.2.1"
   }
 }

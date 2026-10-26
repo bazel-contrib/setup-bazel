@@ -4,7 +4,7 @@ import * as cache from '@actions/cache'
 import * as core from '@actions/core'
 import * as glob from '@actions/glob'
 import config from './config.js'
-import { getFolderSize } from './util.js'
+import { getFolderSize, sanitizeCacheKey } from './util.js'
 
 async function run() {
   await saveCaches()
@@ -84,7 +84,7 @@ async function saveCache(cacheConfig) {
       // We don't want to follow symlinks as it's extremely slow on macOS.
       { followSymbolicLinks: false }
     )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+    const key = sanitizeCacheKey(`${config.baseCacheKey}-${cacheConfig.name}-${hash}`)
     core.debug(`Attempting to save ${paths} cache to ${key}`)
     await cache.saveCache(paths, key)
     core.info('Successfully saved cache')

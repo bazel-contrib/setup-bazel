@@ -6,6 +6,7 @@ import * as github from '@actions/github'
 import * as glob from '@actions/glob'
 import * as tc from '@actions/tool-cache'
 import config from './config.js'
+import { sanitizeCacheKey } from './util.js'
 
 async function run() {
   try {
@@ -159,7 +160,7 @@ async function restoreCache(cacheConfig) {
   try {
     const hash = await glob.hashFiles(cacheConfig.files.join('\n'))
     const paths = cacheConfig.paths
-    const restoreKey = `${config.baseCacheKey}-${name}-`
+    const restoreKey = sanitizeCacheKey(`${config.baseCacheKey}-${name}-`)
     const key = `${restoreKey}${hash}`
 
     core.debug(`Attempting to restore ${name} cache from ${key}`)

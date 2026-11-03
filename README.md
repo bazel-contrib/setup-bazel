@@ -259,7 +259,7 @@ Default `false`.
   ```yaml
   - uses: bazel-contrib/setup-bazel@0.19.1
     with:
-      repository-cache: |
+      repository-cache:
         - MODULE.bazel
         - requirements_locked.txt
   ```

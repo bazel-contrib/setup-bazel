@@ -48,4 +48,9 @@ function lstatSync(path, opts) {
   }
 }
 
-export { getFolderSize }
+// https://github.com/actions/toolkit/blob/main/packages/cache/src/cache.ts#L104
+function sanitizeCacheKey(key) {
+  return key.replaceAll(',', '_').slice(0, 512)
+}
+
+export { getFolderSize, sanitizeCacheKey }

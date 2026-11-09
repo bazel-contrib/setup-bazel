@@ -102100,6 +102100,11 @@ function lstatSync(path, opts) {
   }
 }
 
+// https://github.com/actions/toolkit/blob/main/packages/cache/src/cache.ts#L104
+function sanitizeCacheKey(key) {
+  return key.replaceAll(',', '_').slice(0, 512)
+}
+
 
 
 ;// CONCATENATED MODULE: ./post.js
@@ -102189,7 +102194,7 @@ async function post_saveCache(cacheConfig) {
       // We don't want to follow symlinks as it's extremely slow on macOS.
       { followSymbolicLinks: false }
     )
-    const key = `${config.baseCacheKey}-${cacheConfig.name}-${hash}`
+    const key = sanitizeCacheKey(`${config.baseCacheKey}-${cacheConfig.name}-${hash}`)
     core_debug(`Attempting to save ${paths} cache to ${key}`)
     await cache_saveCache(paths, key)
     info('Successfully saved cache')
